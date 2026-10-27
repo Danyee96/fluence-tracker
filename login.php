@@ -39,7 +39,7 @@ page_header('Log in', '', true);
 <div class="auth">
   <div class="auth-shell">
     <aside class="auth-brand">
-      <a class="brand"><span class="mark"><?= icon('flag') ?></span>Fluence</a>
+      <a class="brand" href="index.php" aria-label="Fluence home"><img class="brand-logo" src="assets/fluence-logo.svg?v=<?= FL_VERSION ?>" alt="Fluence" width="2048" height="309"></a>
       <div>
         <h2>From content to a real creator business.</h2>
         <ul class="auth-points">

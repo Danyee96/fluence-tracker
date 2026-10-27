@@ -47,8 +47,10 @@ code{background:rgba(255,255,255,.07);padding:1px 6px;border-radius:5px;font-siz
 .nav{position:sticky;top:0;z-index:40;background:rgba(10,12,17,.8);backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);border-bottom:1px solid var(--line)}
 .nav-in{max-width:1140px;margin:0 auto;padding:10px 20px;display:flex;align-items:center;gap:22px}
 .brand{font-family:var(--display);font-weight:700;font-size:18px;color:var(--fg);text-decoration:none;display:inline-flex;align-items:center;gap:10px;letter-spacing:-.01em}
-.brand .mark{width:28px;height:28px;border-radius:9px;background:var(--grad);display:grid;place-items:center;color:#031016;box-shadow:0 6px 18px rgba(34,211,238,.25)}
-.brand .mark .ic{width:15px;height:15px;stroke-width:2.6}
+.brand{flex-shrink:0}
+.brand-logo{display:block;width:150px;height:auto}
+.auth-brand .brand-logo{width:230px;max-width:100%}
+@media(max-width:380px){.nav .brand-logo{width:112px}.nav-in{padding-inline:12px}}
 .links{display:flex;gap:4px;flex:1}
 .links a{display:inline-flex;align-items:center;gap:8px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;padding:8px 12px;border-radius:10px;transition:background .15s,color .15s}
 .links a:hover{color:var(--fg);background:rgba(255,255,255,.04)}

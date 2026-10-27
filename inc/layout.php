@@ -15,7 +15,7 @@ function page_header(string $title, string $active = '', bool $bare = false): vo
 <meta name="csrf" content="<?= e(csrf_token()) ?>">
 <meta name="theme-color" content="#0a0c11">
 <title><?= e($title) ?> · <?= e($app) ?></title>
-<link rel="icon" href="data:image/svg+xml,<?= rawurlencode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs><rect width="32" height="32" rx="9" fill="url(#g)"/><path d="M11 9h11M11 9v14M11 16h8" stroke="#031016" stroke-width="3.2" stroke-linecap="round" fill="none"/></svg>') ?>">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg?v=<?= $v ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
@@ -25,7 +25,7 @@ function page_header(string $title, string $active = '', bool $bare = false): vo
 <?php if ($u): ?>
 <header class="nav">
   <div class="nav-in">
-    <a class="brand" href="index.php"><span class="mark"><?= icon('flag') ?></span><?= e($app) ?></a>
+    <a class="brand" href="index.php"><img class="brand-logo" src="assets/fluence-logo.svg?v=<?= $v ?>" alt="<?= e($app) ?>" width="2048" height="309"></a>
     <nav class="links">
       <?php if (is_staff($u)): ?>
         <a href="dashboard.php" class="<?= $active === 'dashboard' ? 'on' : '' ?>"><?= icon('grid') ?><span>Dashboard</span></a>
