@@ -134,12 +134,12 @@
     box.innerHTML = FIELDS.map(function (f, idx) {
       var v = e[f.k], pv = F.prev ? F.prev[f.k] : null;
       var hint = F.prev && pv != null && pv !== '' ? '<small>' + esc(F.prev.name.slice(0, 3)) + ': ' + esc(f.hintFmt(pv)) + '</small>' : '<small>&nbsp;</small>';
-      return '<label class="fld' + (F.canEdit ? '' : ' ro') + '"><span>' + esc(f.label) + '</span><span class="adorn">' +
+      return '<label class="fld fld-' + f.k + (F.canEdit ? '' : ' ro') + '"><span>' + esc(f.label) + '</span><span class="adorn">' +
         (f.pre ? '<em>' + f.pre + '</em>' : '') +
         '<input data-k="' + f.k + '" ' + (f.date ? 'type="date"' : 'type="text" inputmode="decimal" placeholder="—"') +
         ' value="' + esc(v == null ? '' : (f.date ? v : (f.k === 'spon' || f.k === 'info') && !F.entry ? '' : v)) + '"' + (F.canEdit ? '' : ' disabled') + '>' +
         (f.post ? '<em>' + f.post + '</em>' : '') + '</span>' + hint + '</label>' +
-        (idx === 1 ? '<div class="fld total"><span>Total revenue</span><b id="totrev">' + (F.entry ? '$' + U.num(totalRev(F.entry)) : '—') + '</b><small>sponsor + info</small></div>' : '');
+        (idx === 2 ? '<div class="fld total"><span>Total revenue</span><b id="totrev">' + (F.entry ? '$' + U.num(totalRev(F.entry)) : '—') + '</b><small>sponsor + info</small></div>' : '');
     }).join('');
 
     if (!F.canEdit) return;
