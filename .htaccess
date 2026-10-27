@@ -1,0 +1,11 @@
+Options -Indexes
+DirectoryIndex index.php
+
+<FilesMatch "^(config\.php|config\.sample\.php|schema\.sql|README\.md|\.gitignore)$">
+  Require all denied
+</FilesMatch>
+
+# Uncomment to force HTTPS once SSL is active in hPanel
+# RewriteEngine On
+# RewriteCond %{HTTPS} off
+# RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
