@@ -9,6 +9,10 @@ if (!file_exists($cfgFile)) {
     exit('Missing config.php — copy config.sample.php to config.php and add your database details.');
 }
 $CONFIG = require $cfgFile;
+$localCfgFile = __DIR__ . '/../config.local.php';
+if (file_exists($localCfgFile)) {
+    $CONFIG = array_replace_recursive($CONFIG, require $localCfgFile);
+}
 date_default_timezone_set($CONFIG['timezone'] ?? 'UTC');
 
 $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
