@@ -136,16 +136,22 @@ window.FLU = (function () {
     }
 
     function positionPicker() {
-      picker.style.left = '0';
-      picker.style.right = 'auto';
-      if (wrap.getBoundingClientRect().left + picker.offsetWidth > window.innerWidth - 12) {
-        picker.style.left = 'auto';
-        picker.style.right = '0';
+      var margin = 12, anchor = trigger.getBoundingClientRect();
+      var viewportWidth = document.documentElement.clientWidth;
+      var viewportHeight = window.innerHeight;
+      picker.style.maxHeight = Math.max(0, viewportHeight - margin * 2) + 'px';
+      var left = Math.max(margin, Math.min(anchor.left, viewportWidth - picker.offsetWidth - margin));
+      var top = anchor.bottom + 8;
+      if (top + picker.offsetHeight > viewportHeight - margin) {
+        top = anchor.top - picker.offsetHeight - 8;
       }
+      top = Math.max(margin, Math.min(top, viewportHeight - picker.offsetHeight - margin));
+      picker.style.left = left + 'px';
+      picker.style.top = top + 'px';
     }
 
     renderPicker();
-    wrap.appendChild(picker);
+    document.body.appendChild(picker);
     trigger.addEventListener('click', function () {
       var opening = picker.hidden;
       picker.hidden = !opening;
@@ -159,7 +165,11 @@ window.FLU = (function () {
     window.addEventListener('resize', function () {
       if (!picker.hidden) positionPicker();
     });
+    window.addEventListener('scroll', function () {
+      if (!picker.hidden) positionPicker();
+    }, true);
     picker.addEventListener('click', function (e) {
+      e.stopPropagation();
       var button = e.target.closest('button');
       if (!button) return;
       if (button.hasAttribute('data-year')) {
@@ -179,7 +189,7 @@ window.FLU = (function () {
       }
     });
     document.addEventListener('click', function (e) {
-      if (!wrap.contains(e.target)) closePicker(false);
+      if (!wrap.contains(e.target) && !picker.contains(e.target)) closePicker(false);
     });
     picker.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {

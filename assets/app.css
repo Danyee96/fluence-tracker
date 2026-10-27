@@ -149,7 +149,7 @@ body.bare .page{max-width:1000px}
 .mpick{display:inline-flex;align-items:center;gap:9px;height:40px;padding:0 16px;border-radius:12px;border:1px solid rgba(34,211,238,.35);background:linear-gradient(135deg,rgba(34,211,238,.11),rgba(99,102,241,.08));font-family:var(--display);font-weight:600;font-size:15px;color:var(--cya);cursor:pointer;transition:border-color .15s,background .15s,box-shadow .15s}
 .mpick:hover,.mpick[aria-expanded=true]{border-color:rgba(34,211,238,.65);background:rgba(34,211,238,.14);box-shadow:0 0 0 3px rgba(34,211,238,.08)}
 .mpick .ic{width:18px;height:18px}
-.mpicker{position:absolute;z-index:50;top:calc(100% + 8px);left:0;width:min(330px,calc(100vw - 32px));padding:16px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:16px;box-shadow:var(--shadow);color:var(--fg);animation:pop .14s ease}
+.mpicker{position:fixed;z-index:100;overflow-y:auto;overscroll-behavior:contain;top:0;left:0;width:min(330px,calc(100vw - 32px));padding:16px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line2);border-radius:16px;box-shadow:var(--shadow);color:var(--fg);animation:pop .14s ease}
 .mpicker-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding-bottom:12px;border-bottom:1px solid var(--line);font-family:var(--display);font-size:17px;font-weight:600}
 .mpicker-year{min-width:70px;text-align:center}
 .mpicker-nav{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--line);border-radius:9px;background:rgba(255,255,255,.035);color:var(--muted);font-size:18px;cursor:pointer}
