@@ -102,7 +102,6 @@ function entry_js(?array $r): ?array
         'spon'    => (float)$r['sponsor_rev'],
         'info'    => (float)$r['info_rev'],
         'subs'    => $r['subscribers'] !== null ? (int)$r['subscribers'] : null,
-        'hours'   => $r['hours_week'] !== null ? (float)$r['hours_week'] : null,
         'streams' => $r['income_streams'] !== null ? (int)$r['income_streams'] : null,
         'meeting' => $r['last_meeting'] ?: null,
     ];
@@ -110,7 +109,7 @@ function entry_js(?array $r): ?array
 
 function get_goals(int $cid): array
 {
-    $sql = 'SELECT target_revenue, target_subs, target_hours, target_streams FROM creator_goals WHERE creator_id=?';
+    $sql = 'SELECT target_revenue, target_subs, target_streams FROM creator_goals WHERE creator_id=?';
     $g = q($sql, [$cid])->fetch();
     if (!$g) {
         upsert('creator_goals', ['creator_id'], ['creator_id' => $cid, 'updated_at' => now()]);

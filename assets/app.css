@@ -367,6 +367,8 @@ button.pstep{cursor:pointer}
 .sh-actions{margin-left:auto}
 
 /* goal tiles */
+.kpis.tiles{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:640px){.kpis.tiles{grid-template-columns:1fr}}
 .kpis.tiles .kpi{padding:16px 18px 14px}
 .goal.done{border-color:rgba(52,211,153,.35);background:linear-gradient(180deg,rgba(52,211,153,.07),var(--panel))}
 .goal .hit{margin-left:auto;display:inline-flex;align-items:center;gap:4px;font-family:var(--display);font-weight:600;font-size:10.5px;color:var(--grn);text-transform:uppercase;letter-spacing:.05em}
@@ -385,7 +387,7 @@ button.pstep{cursor:pointer}
 .tgt-in:focus{outline:none}
 
 /* entry form */
-.entry{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px 14px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r);padding:18px}
+.entry{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 14px;background:linear-gradient(180deg,var(--panel2),var(--panel));border:1px solid var(--line);border-radius:var(--r);padding:18px}
 .fld{display:grid;gap:7px;align-content:start}
 .fld>span:first-child{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted2);font-weight:600;font-family:var(--display)}
 .fld small{font-size:11.5px;color:var(--muted2)}

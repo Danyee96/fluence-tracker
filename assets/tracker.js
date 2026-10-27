@@ -66,7 +66,6 @@
   var GOALS = [
     { key: 'target_revenue', label: 'Monthly revenue', icon: 'dollar', fmt: function (v) { return '$' + U.num(v); }, cur: function (e) { return totalRev(e); }, prev: function (p) { return totalRev(p); }, kind: 'money' },
     { key: 'target_subs', label: 'Subscribers', icon: 'users', fmt: U.num, cur: function (e) { return e ? e.subs : null; }, prev: function (p) { return p ? p.subs : null; }, kind: 'num' },
-    { key: 'target_hours', label: 'Hours / week', icon: 'clock', fmt: function (v) { return U.num(v) + 'h'; }, cur: function (e) { return e ? e.hours : null; }, prev: function (p) { return p ? p.hours : null; }, kind: 'lower', lower: true },
     { key: 'target_streams', label: 'Income streams', icon: 'layers', fmt: U.num, cur: function (e) { return e ? e.streams : null; }, prev: function (p) { return p ? p.streams : null; }, kind: 'num' }
   ];
   function renderGoals() {
@@ -106,7 +105,6 @@
     { k: 'spon', label: 'Sponsor revenue', pre: '$', hintFmt: function (v) { return '$' + U.num(v); } },
     { k: 'info', label: 'Info product revenue', pre: '$', hintFmt: function (v) { return '$' + U.num(v); } },
     { k: 'subs', label: 'Subscribers', hintFmt: U.num },
-    { k: 'hours', label: 'Hours / week', post: 'h', hintFmt: function (v) { return v + 'h'; } },
     { k: 'streams', label: 'Income streams', hintFmt: U.num },
     { k: 'meeting', label: 'Last meeting', date: true, hintFmt: function (v) { return new Date(v + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); } }
   ];
@@ -122,9 +120,9 @@
     act.innerHTML = F.canEdit && F.prev ? '<button type="button" class="btn sm ghost" id="copyprev">' + I('copy') + '<span>Copy from ' + esc(F.prev.name) + '</span></button>' : '';
     var cp = document.getElementById('copyprev');
     if (cp) cp.addEventListener('click', function () {
-      var hasVals = F.entry && ['spon', 'info', 'subs', 'hours', 'streams'].some(function (k) { return F.entry[k]; });
+      var hasVals = F.entry && ['spon', 'info', 'subs', 'streams'].some(function (k) { return F.entry[k]; });
       if (hasVals && !confirm('Replace ' + F.monthName + '’s numbers with ' + F.prev.name + '’s?')) return;
-      F.entry = { spon: F.prev.spon, info: F.prev.info, subs: F.prev.subs, hours: F.prev.hours, streams: F.prev.streams, meeting: F.entry ? F.entry.meeting : null };
+      F.entry = { spon: F.prev.spon, info: F.prev.info, subs: F.prev.subs, streams: F.prev.streams, meeting: F.entry ? F.entry.meeting : null };
       syncHistory(); renderEntry(); renderGoals(); renderCharts(); renderTable();
       saveEntry(); saveEntry.flush();
       U.toast('Copied ' + F.prev.name + '’s numbers — update what changed');
@@ -147,7 +145,7 @@
     if (!F.canEdit) return;
     box.querySelectorAll('input').forEach(function (inp) {
       inp.addEventListener('input', function () {
-        if (!F.entry) F.entry = { spon: 0, info: 0, subs: null, hours: null, streams: null, meeting: null };
+        if (!F.entry) F.entry = { spon: 0, info: 0, subs: null, streams: null, meeting: null };
         var k = this.dataset.k, raw = this.value.trim();
         if (k === 'meeting') F.entry[k] = raw || null;
         else { var n = parseFloat(raw.replace(/[^0-9.]/g, '')); F.entry[k] = isNaN(n) ? (k === 'spon' || k === 'info' ? 0 : null) : n; }
@@ -168,7 +166,7 @@
       F.history.push(h);
       F.history.sort(function (a, b) { return a.month < b.month ? -1 : 1; });
     }
-    ['spon', 'info', 'subs', 'hours', 'streams', 'meeting'].forEach(function (k) { h[k] = e[k]; });
+    ['spon', 'info', 'subs', 'streams', 'meeting'].forEach(function (k) { h[k] = e[k]; });
   }
 
   /* ---------- phases ---------- */
@@ -364,11 +362,10 @@
         '<td class="n">$' + U.num((+d.spon || 0) + (+d.info || 0)) + '</td>' +
         '<td class="n">' + U.num(d.subs) + '</td>' +
         '<td class="n ' + (sg > 0 ? 'up' : sg < 0 ? 'down' : '') + '">' + U.growth(sg) + '</td>' +
-        '<td class="n">' + (d.hours == null ? '—' : d.hours + 'h') + '</td>' +
         '<td class="n">' + (d.streams == null ? '—' : d.streams) + '</td></tr>';
     }).join('');
-    t.innerHTML = '<thead><tr><th>Month</th><th class="n">Revenue</th><th class="n">Subscribers</th><th class="n">Growth</th><th class="n">Hrs/wk</th><th class="n">Streams</th></tr></thead>' +
-      '<tbody>' + (rows || '<tr><td colspan="6" class="muted">No months logged yet.</td></tr>') + '</tbody>';
+    t.innerHTML = '<thead><tr><th>Month</th><th class="n">Revenue</th><th class="n">Subscribers</th><th class="n">Growth</th><th class="n">Streams</th></tr></thead>' +
+      '<tbody>' + (rows || '<tr><td colspan="5" class="muted">No months logged yet.</td></tr>') + '</tbody>';
   }
 
   function renderFeed() {

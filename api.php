@@ -56,7 +56,6 @@ try {
                 'sponsor_rev'    => max(0, num_or_null($f['spon'] ?? 0) ?? 0),
                 'info_rev'       => max(0, num_or_null($f['info'] ?? 0) ?? 0),
                 'subscribers'    => ($s = num_or_null($f['subs'] ?? null, true)) === null ? null : max(0, $s),
-                'hours_week'     => ($h = num_or_null($f['hours'] ?? null)) === null ? null : max(0, min(168, $h)),
                 'income_streams' => ($n = num_or_null($f['streams'] ?? null, true)) === null ? null : max(0, $n),
                 'last_meeting'   => preg_match('/^\d{4}-\d{2}-\d{2}$/', $mt) ? $mt : null,
                 'updated_by'     => $me,
@@ -72,7 +71,6 @@ try {
                 'creator_id'     => $cid,
                 'target_revenue' => max(0, num_or_null($g['target_revenue'] ?? 0) ?? 0),
                 'target_subs'    => max(0, num_or_null($g['target_subs'] ?? 0, true) ?? 0),
-                'target_hours'   => max(0, num_or_null($g['target_hours'] ?? 0) ?? 0),
                 'target_streams' => max(0, num_or_null($g['target_streams'] ?? 0, true) ?? 0),
                 'updated_at'     => now(),
             ]);

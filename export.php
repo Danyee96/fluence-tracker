@@ -13,7 +13,7 @@ fwrite($out, "\xEF\xBB\xBF"); // Excel-friendly UTF-8
 
 $head = ['Creator', 'Email', 'Handle', 'Niche', 'Status', 'Current phase', 'Overall %'];
 foreach (phases() as $p) $head[] = $p['short'] . ' %';
-array_push($head, 'Sponsor $', 'Info $', 'Total $', 'Subscribers', 'Sub growth', 'Hours/week', 'Income streams', 'Last meeting', 'Logged this month');
+array_push($head, 'Sponsor $', 'Info $', 'Total $', 'Subscribers', 'Sub growth', 'Income streams', 'Last meeting', 'Logged this month');
 fputcsv($out, $head);
 
 foreach ($data['cards'] as $c) {
@@ -23,7 +23,7 @@ foreach ($data['cards'] as $c) {
     array_push($row,
         $e ? $e['sponsor_rev'] : '', $e ? $e['info_rev'] : '', $c['rev'] ?? '',
         $c['subs'] ?? '', $c['subGrowth'] ?? '',
-        $e ? $e['hours_week'] : '', $e ? $e['income_streams'] : '',
+        $e ? $e['income_streams'] : '',
         $c['lastMeeting'] ?? '', $c['logged'] ? 'Yes' : 'No');
     fputcsv($out, $row);
 }

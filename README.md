@@ -17,7 +17,7 @@ Plain PHP 8 + MySQL. No framework, no Composer, no Node build, so it runs on Hos
 Upload the new files over the old ones, keeping your `config.php`. The database upgrades itself on the next page load, and your existing data stays.
 
 ## How month-based data works
-- **Monthly numbers** (sponsor rev, info rev, subscribers, hours/week, income streams, last meeting) are stored once per creator per month.
+- **Monthly numbers** (sponsor rev, info rev, subscribers, income streams, last meeting) are stored once per creator per month.
 - **Step status** carries forward. A month with nothing saved shows the latest earlier month's steps. The first change saves a full snapshot for that month, so you can look back at any month.
 - **Phase notes** are per month.
 - **Goal targets** are per creator, not per month.
