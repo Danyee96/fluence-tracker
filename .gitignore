@@ -1,3 +1,4 @@
+config.php
 data/*.sqlite
 .DS_Store
 hostinger-upload/
