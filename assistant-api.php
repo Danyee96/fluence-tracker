@@ -6,8 +6,8 @@ $u=current_user();if (!$u) json_out(['ok'=>false,'error'=>'Please log in.'],401)
 if (!csrf_ok($_SERVER['HTTP_X_CSRF']??null)) json_out(['ok'=>false,'error'=>'Refresh the page and retry.'],419);
 $in=json_decode(file_get_contents('php://input'),true);
 if (!is_array($in)) json_out(['ok'=>false,'error'=>'Invalid request.'],422);
-$month=valid_month($in['month']??'');$question=trim((string)($in['question']??''));
-if (!$month || $question==='' || mb_strlen($question)>2000) json_out(['ok'=>false,'error'=>'Choose a month and enter a question up to 2,000 characters.'],422);
+$month=date('Y-m');$question=trim((string)($in['question']??''));
+if ($question==='' || mb_strlen($question)>2000) json_out(['ok'=>false,'error'=>'Enter a question up to 2,000 characters.'],422);
 if (time()-(int)($_SESSION['assistant_last']??0)<5) json_out(['ok'=>false,'error'=>'Please wait a few seconds before asking again.'],429);
 try {
     $context=assistant_global_context($u,$month);

@@ -65,7 +65,7 @@ function page_footer(array $scripts = []): void
 <button type="button" class="assistant-launcher" id="assistant-toggle" aria-label="Open Grok assistant" aria-expanded="false" aria-controls="assistant-window"><?= icon('chat') ?><span>Ask Grok</span></button>
 <section class="assistant-widget assistant-panel" id="assistant-window" role="dialog" aria-labelledby="assistant-title" hidden>
   <div class="assistant-widget-header"><div><b id="assistant-title">Fluence assistant</b><small><?= is_staff(current_user())?'Across all creators':'Your tracker' ?> · Read only</small></div><button type="button" class="iconbtn" id="assistant-close" aria-label="Close assistant"><?= icon('x') ?></button></div>
-  <form id="assistant-form"><label class="assistant-month-label">Month<input id="assistant-month" type="month" value="<?= e(valid_month($_GET['m']??'')??date('Y-m')) ?>" required></label>
+  <form id="assistant-form">
   <div id="assistant-messages" class="assistant-messages" role="log" aria-label="Conversation" aria-live="polite"><p class="hint">Ask about goals, progress, meetings or next steps. Relevant records are sent to xAI when you ask.</p></div>
   <label class="sr-only" for="assistant-question">Your question</label><textarea id="assistant-question" rows="2" maxlength="2000" placeholder="Ask about your project…" required></textarea>
   <div class="assistant-widget-actions"><button class="btn primary sm" type="submit" id="assistant-send">Send</button><button class="btn sm" type="button" id="assistant-clear">Clear</button></div>
