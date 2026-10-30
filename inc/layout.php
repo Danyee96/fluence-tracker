@@ -21,7 +21,7 @@ function page_header(string $title, string $active = '', bool $bare = false): vo
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/app.css?v=<?= $v ?>">
 </head>
-<body class="<?= $bare ? 'bare' : '' ?>">
+<body data-assistant-user="<?= $u ? (int)$u['id'] : 0 ?>" class="<?= $bare ? 'bare' : '' ?>">
 <?php if ($u): ?>
 <header class="nav">
   <div class="nav-in">
@@ -35,7 +35,7 @@ function page_header(string $title, string $active = '', bool $bare = false): vo
       <?php if ($u['role'] === 'superadmin'): ?>
         <a href="users.php" class="<?= $active === 'users' ? 'on' : '' ?>"><?= icon('users') ?><span>Users</span></a>
       <?php endif; ?>
-      <?php if (assistant_local()): ?><a href="assistant.php" class="<?= $active === 'assistant' ? 'on' : '' ?>"><?= icon('chat') ?><span>Assistant</span></a><?php endif; ?>
+
     </nav>
     <div class="me">
       <a class="me-link <?= $active === 'account' ? 'on' : '' ?>" href="account.php" title="Your account">
@@ -61,8 +61,16 @@ function page_footer(array $scripts = []): void
     $v = FL_VERSION;
     ?>
 </div></main>
-<?php if (assistant_local() && current_user() && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'assistant.php'): ?>
-<a class="assistant-launcher" href="assistant.php" aria-label="Open Grok assistant" title="Ask Grok"><?= icon('chat') ?><span>Ask Grok</span></a>
+<?php if (assistant_local() && current_user()): $scripts[]='assistant.js'; ?>
+<button type="button" class="assistant-launcher" id="assistant-toggle" aria-label="Open Grok assistant" aria-expanded="false" aria-controls="assistant-window"><?= icon('chat') ?><span>Ask Grok</span></button>
+<section class="assistant-widget assistant-panel" id="assistant-window" role="dialog" aria-labelledby="assistant-title" hidden>
+  <div class="assistant-widget-header"><div><b id="assistant-title">Fluence assistant</b><small><?= is_staff(current_user())?'Across all creators':'Your tracker' ?> · Read only</small></div><button type="button" class="iconbtn" id="assistant-close" aria-label="Close assistant"><?= icon('x') ?></button></div>
+  <form id="assistant-form"><label class="assistant-month-label">Month<input id="assistant-month" type="month" value="<?= e(valid_month($_GET['m']??'')??date('Y-m')) ?>" required></label>
+  <div id="assistant-messages" class="assistant-messages" role="log" aria-label="Conversation" aria-live="polite"><p class="hint">Ask about goals, progress, meetings or next steps. Relevant records are sent to xAI when you ask.</p></div>
+  <label class="sr-only" for="assistant-question">Your question</label><textarea id="assistant-question" rows="2" maxlength="2000" placeholder="Ask about your project…" required></textarea>
+  <div class="assistant-widget-actions"><button class="btn primary sm" type="submit" id="assistant-send">Send</button><button class="btn sm" type="button" id="assistant-clear">Clear</button></div>
+  <p class="hint" id="assistant-status" role="status"></p></form>
+</section>
 <?php endif; ?>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <script>window.FL_ICONS = <?= js_json(icon_paths()) ?>;</script>

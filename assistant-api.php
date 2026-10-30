@@ -10,13 +10,12 @@ $month=valid_month($in['month']??'');$question=trim((string)($in['question']??''
 if (!$month || $question==='' || mb_strlen($question)>2000) json_out(['ok'=>false,'error'=>'Choose a month and enter a question up to 2,000 characters.'],422);
 if (time()-(int)($_SESSION['assistant_last']??0)<5) json_out(['ok'=>false,'error'=>'Please wait a few seconds before asking again.'],429);
 try {
-    $cid=$u['role']==='creator'?(int)$u['id']:(int)($in['cid']??0);
-    $context=assistant_context($u,$cid,$month);
+    $context=assistant_global_context($u,$month);
     $_SESSION['assistant_last']=time();
     // Release the session lock while waiting for the provider.
     session_write_close();
     $answer=assistant_reply($context,$question,is_array($in['history']??null)?$in['history']:[]);
-    json_out(['ok'=>true,'answer'=>$answer,'source'=>$context['tracker_url'],'captured_at'=>$context['captured_at']]);
+    json_out(['ok'=>true,'answer'=>$answer,'sources'=>array_map(static fn(array $c): array => ['name'=>$c['creator']['name'],'url'=>$c['tracker_url']],$context['creators']),'captured_at'=>$context['captured_at']]);
 } catch (InvalidArgumentException $e) {json_out(['ok'=>false,'error'=>$e->getMessage()],422);}
 catch (RuntimeException $e) {json_out(['ok'=>false,'error'=>$e->getMessage()],503);}
 catch (Throwable $e) {json_out(['ok'=>false,'error'=>'Unable to prepare an answer. Try again.'],500);}
