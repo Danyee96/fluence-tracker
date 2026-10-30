@@ -298,17 +298,20 @@
   }
 
   var noteSavers = {}, expandedPhases = {};
-  function renderTasks(nodes) {
-    return '<ul class="task-tree">' + nodes.map(function (m) {
+  function renderTasks(nodes, parentNumber) {
+    parentNumber = parentNumber || '';
+    return '<ul class="task-tree">' + nodes.map(function (m, index) {
+      var number = parentNumber ? parentNumber + '.' + (index + 1) : String(index + 1);
+      var level = parentNumber ? 'Subtask' : 'Step';
       var children = m.children || [], leaf = !children.length, p = nodeProgress(m), pct = displayedPct(p), saved = drafts[m.key] || F.values[m.key] || {};
       var note = F.notes['task:' + m.key] || '';
       var notes = F.canEdit ? '<textarea data-task-note="' + esc(m.key) + '" rows="2" maxlength="5000" placeholder="Notes, blockers, next actions…">' + esc(note) + '</textarea>' : '<div class="ro">' + (note ? esc(note) : '<span class="muted">No notes this month.</span>') + '</div>';
-      return '<li class="task-node st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><details class="task-details"><summary class="task-heading"><h4>' + esc(m.t) + '</h4><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span><span class="task-open-label">View details ' + I('chevron') + '</span></summary>' +
+      return '<li class="task-node ' + (parentNumber ? 'task-child' : 'task-root') + ' st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><details class="task-details"><summary class="task-heading"><span class="task-number" aria-label="' + level + ' ' + number + '">' + number + '</span><span class="task-title"><span class="task-level">' + level + (children.length ? ' · ' + children.length + ' subtask' + (children.length === 1 ? '' : 's') : '') + '</span><h4>' + esc(m.t) + '</h4></span><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span><span class="task-open-label"><span class="task-label-closed">Expand</span><span class="task-label-open">Collapse</span> ' + I('chevron') + '</span></summary>' +
         '<div class="task-progress-track"><i class="task-progress-fill" style="width:' + pct + '%"></i></div>' +
         (m.description ? '<p class="task-description">' + esc(m.description) + '</p>' : '') +
         (leaf && (m.type === 'number' || m.type === 'money') && m.target !== '' && m.target != null ? '<div class="goal-target">Target: ' + valueFormat(m.type, m.target) + '</div>' : '') +
-        (leaf ? (F.canRespond ? resultForm(m, 'task') : (m.type && m.type !== 'check' ? '<div class="goal-result">' + valueFormat(m.type, saved.value) + '</div>' : '')) : renderTasks(children)) +
-        '<div class="notes task-detail-section"><label>Notes · ' + esc(F.monthLabel) + '</label>' + notes + '</div></details></li>';
+        (leaf ? (F.canRespond ? resultForm(m, 'task') : (m.type && m.type !== 'check' ? '<div class="goal-result">' + valueFormat(m.type, saved.value) + '</div>' : '')) : renderTasks(children, number)) +
+        '<div class="notes task-detail-section"><label>' + (parentNumber ? 'Subtask notes' : 'Step notes') + ' · ' + esc(F.monthLabel) + '</label>' + notes + '</div></details></li>';
     }).join('') + '</ul>';
   }
   function renderPhases() {
