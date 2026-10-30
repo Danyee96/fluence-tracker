@@ -303,7 +303,7 @@
       var children = m.children || [], leaf = !children.length, p = nodeProgress(m), pct = displayedPct(p), saved = drafts[m.key] || F.values[m.key] || {};
       var note = F.notes['task:' + m.key] || '';
       var notes = F.canEdit ? '<textarea data-task-note="' + esc(m.key) + '" rows="3" maxlength="5000" placeholder="Notes, blockers, next actions…">' + esc(note) + '</textarea>' : '<div class="ro">' + (note ? esc(note) : '<span class="muted">No notes this month.</span>') + '</div>';
-      return '<li class="task-node st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><details class="task-details"' + (leaf ? ' open' : '') + '><summary class="task-heading"><h4>' + esc(m.t) + '</h4><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span><span class="task-open-label">View details ' + I('chevron') + '</span></summary>' +
+      return '<li class="task-node st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><details class="task-details"><summary class="task-heading"><h4>' + esc(m.t) + '</h4><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span><span class="task-open-label">View details ' + I('chevron') + '</span></summary>' +
         '<div class="task-progress-track"><i class="task-progress-fill" style="width:' + pct + '%"></i></div>' +
         (m.description ? '<p class="task-description">' + esc(m.description) + '</p>' : '') +
         (leaf && (m.type === 'number' || m.type === 'money') && m.target !== '' && m.target != null ? '<div class="goal-target">Target: ' + valueFormat(m.type, m.target) + '</div>' : '') +
