@@ -64,12 +64,12 @@ function page_footer(array $scripts = []): void
 <?php if (assistant_local() && current_user()): $scripts[]='assistant.js'; ?>
 <button type="button" class="assistant-launcher" id="assistant-toggle" aria-label="Open Grok assistant" aria-expanded="false" aria-controls="assistant-window"><?= icon('chat') ?><span>Ask Grok</span></button>
 <section class="assistant-widget assistant-panel" id="assistant-window" role="dialog" aria-labelledby="assistant-title" hidden>
-  <div class="assistant-widget-header"><div><b id="assistant-title">Fluence assistant</b><small><?= is_staff(current_user())?'Across all creators':'Your tracker' ?> · Read only</small></div><button type="button" class="iconbtn" id="assistant-close" aria-label="Close assistant"><?= icon('x') ?></button></div>
+  <div class="assistant-widget-header"><span class="assistant-avatar"><?= icon('chat') ?></span><div class="assistant-heading"><b id="assistant-title">Fluence assistant</b><small><?= is_staff(current_user())?'Across all creators':'Your tracker' ?> <span>· Read only</span></small></div><button type="button" class="iconbtn" id="assistant-clear" aria-label="Start a new conversation" title="New conversation"><?= icon('plus') ?></button><button type="button" class="iconbtn" id="assistant-close" aria-label="Close assistant"><?= icon('x') ?></button></div>
   <form id="assistant-form">
-  <div id="assistant-messages" class="assistant-messages" role="log" aria-label="Conversation" aria-live="polite"><p class="hint">Ask about goals, progress, meetings or next steps. Relevant records are sent to xAI when you ask.</p></div>
-  <label class="sr-only" for="assistant-question">Your question</label><textarea id="assistant-question" rows="2" maxlength="2000" placeholder="Ask about your project…" required></textarea>
-  <div class="assistant-widget-actions"><button class="btn primary sm" type="submit" id="assistant-send">Send</button><button class="btn sm" type="button" id="assistant-clear">Clear</button></div>
-  <p class="hint" id="assistant-status" role="status"></p></form>
+  <div id="assistant-messages" class="assistant-messages" role="log" aria-label="Conversation" aria-live="polite"></div>
+  <div class="assistant-composer"><label class="assistant-sr" for="assistant-question">Your question</label><textarea id="assistant-question" rows="1" maxlength="2000" placeholder="Ask Fluence anything…" required></textarea><button type="submit" id="assistant-send" aria-label="Send message" title="Send message"><?= icon('arrow') ?></button></div>
+  <p class="hint" id="assistant-status" role="status"></p><p class="assistant-footnote">Powered by Grok · Check important answers</p></form>
+  <template id="assistant-welcome"><div class="assistant-welcome"><span class="assistant-welcome-icon"><?= icon('chat') ?></span><h3>A clearer view of your progress.</h3><p>Ask about goals, outstanding tasks or your next steps.</p><div class="assistant-suggestions"><button type="button" data-prompt="What should we focus on next?">What needs attention? <?= icon('arrow') ?></button><button type="button" data-prompt="Summarize progress toward our goals.">Summarize goal progress <?= icon('arrow') ?></button><button type="button" data-prompt="What action items came out of our latest meetings?">Latest meeting actions <?= icon('arrow') ?></button></div><small>Relevant tracker records are shared with xAI when you send a question.</small></div></template>
 </section>
 <?php endif; ?>
 <div class="toasts" id="toasts" aria-live="polite"></div>
