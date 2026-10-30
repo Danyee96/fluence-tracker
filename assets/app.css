@@ -714,7 +714,24 @@ li.st-sk .spill{color:var(--muted2);background:transparent;border-color:var(--li
 
 .task-details>summary{cursor:pointer;list-style:none;flex-wrap:wrap;min-height:44px}
 .task-details>summary::-webkit-details-marker{display:none}
-.task-open-label{display:inline-flex;align-items:center;gap:6px;color:var(--cyan);font-size:12px;margin-left:auto}
+.task-open-label{display:inline-flex;align-items:center;gap:6px;color:var(--cya);font-size:12px;margin-left:auto}
 .task-open-label svg{width:16px;height:16px}.task-details[open]>summary .task-open-label svg{transform:rotate(180deg)}
 .task-detail-section{margin-top:18px}.task-detail-section h5{font-size:14px;margin:0 0 10px;color:var(--fg)}
-.task-details>summary:focus-visible{outline:2px solid var(--cyan);outline-offset:5px;border-radius:6px}
+.task-details>summary:focus-visible{outline:2px solid var(--cya);outline-offset:5px;border-radius:6px}
+
+/* Compact tracker controls; empty save messages take no space. */
+.result-message:empty{display:none}
+.task-tree{margin:10px 0;gap:8px}
+.task-node{padding:10px 12px}
+.task-tree .task-tree{padding-left:8px}
+.task-details>summary{min-height:36px;gap:8px}
+.task-details>summary h4{margin:0;font-size:14px}
+.task-open-label{font-size:11px}
+.task-details .task-progress-track{height:4px;margin:8px 0}
+.task-details .result-form{margin-top:8px;gap:5px}
+.task-details .result-form .task-check{min-height:32px;gap:8px}
+.task-details .task-detail-section{margin-top:10px}
+.task-details .notes label{margin-bottom:5px;letter-spacing:.08em}
+.task-details .notes textarea{min-height:44px;padding:8px 10px;font-size:13px;line-height:1.4;border-radius:8px}
+.task-details .goal-target{margin:6px 0;font-size:12px}
+@media(max-width:560px){.task-node{padding:9px}.task-tree .task-tree{padding-left:6px}.task-details>summary{min-height:40px}}

@@ -103,7 +103,7 @@
         '<label>Your result' + (type === 'money' ? ' ($)' : '') +
         (type === 'text' ? '<textarea name="value" rows="2" maxlength="3000">' + esc(saved.value || '') + '</textarea>' :
           '<input name="value" type="number" min="0" max="999999999999" step="0.01" value="' + esc(saved.value == null ? '' : saved.value) + '">') + '</label>') +
-      '<span class="result-message" role="status">Changes save automatically.</span></form>';
+      '<span class="result-message" role="status"></span></form>';
   }
   function resultMessage(key, message, failed) {
     document.querySelectorAll('.result-form').forEach(function (form) {
@@ -126,7 +126,7 @@
         F.values[key] = {value:res.value, status:res.status}; F.statuses[key] = res.status;
         if (drafts[key] && drafts[key].value === value) delete drafts[key];
         if (!F.goalDefinitions.some(function (g) { return g.key === key; })) { F.inheritedFrom = null; renderInherit(); }
-        resultMessage(key, drafts[key] ? 'Saving…' : 'Saved');
+        resultMessage(key, drafts[key] ? 'Saving…' : '');
         paintProgress();
       } else resultMessage(key, res.error || 'Not saved. Please retry.', true);
       if (resultAgain[key]) { resultAgain[key] = false; saveResult(key); }
@@ -302,7 +302,7 @@
     return '<ul class="task-tree">' + nodes.map(function (m) {
       var children = m.children || [], leaf = !children.length, p = nodeProgress(m), pct = displayedPct(p), saved = drafts[m.key] || F.values[m.key] || {};
       var note = F.notes['task:' + m.key] || '';
-      var notes = F.canEdit ? '<textarea data-task-note="' + esc(m.key) + '" rows="3" maxlength="5000" placeholder="Notes, blockers, next actions…">' + esc(note) + '</textarea>' : '<div class="ro">' + (note ? esc(note) : '<span class="muted">No notes this month.</span>') + '</div>';
+      var notes = F.canEdit ? '<textarea data-task-note="' + esc(m.key) + '" rows="2" maxlength="5000" placeholder="Notes, blockers, next actions…">' + esc(note) + '</textarea>' : '<div class="ro">' + (note ? esc(note) : '<span class="muted">No notes this month.</span>') + '</div>';
       return '<li class="task-node st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><details class="task-details"><summary class="task-heading"><h4>' + esc(m.t) + '</h4><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span><span class="task-open-label">View details ' + I('chevron') + '</span></summary>' +
         '<div class="task-progress-track"><i class="task-progress-fill" style="width:' + pct + '%"></i></div>' +
         (m.description ? '<p class="task-description">' + esc(m.description) + '</p>' : '') +
