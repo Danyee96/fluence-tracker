@@ -29,6 +29,20 @@ function assistant_global_context(array $user, string $month): array {
     foreach(array_slice($ids,0,50) as $id)$context['creators'][]=assistant_context($user,(int)$id,$month);
     return $context;
 }
+/** Translate provider failures without exposing keys or arbitrary response content. */
+function assistant_provider_error(int $status, string $raw): string {
+    $data=json_decode($raw,true);
+    $error=is_array($data)?($data['error']??''):'';
+    $message=is_string($error)?$error:(is_array($error)?(string)($error['message']??''):'');
+    if ($status===401 || stripos($message,'Incorrect API key')!==false || stripos($message,'invalid api key')!==false)
+        return 'xAI rejected the API key. Add a valid xAI API key from console.x.ai to grok.api_key in config.local.php. Cursor login tokens and other providers’ keys cannot be used here.';
+    if ($status===429) return 'Grok is rate limited or your API quota is exhausted. Check your xAI usage and try again shortly.';
+    if ($status===402 || stripos($message,'credits')!==false || stripos($message,'balance')!==false)
+        return 'Your xAI API account needs available credits. Check billing in console.x.ai.';
+    if ($status===403 || $status===404) return 'The configured Grok model is unavailable to this API account. Check your xAI model access and grok.model setting.';
+    if ($status===0) return 'Could not connect to xAI. Check the internet connection and try again.';
+    return 'Grok could not answer (HTTP '.$status.'). Check your xAI model access and try again.';
+}
 function assistant_reply(array $context, string $question, array $history=[]): string {
     global $CONFIG;
     $key=trim((string)(($CONFIG['grok']['api_key']??'') ?: (getenv('XAI_API_KEY')?:'')));
@@ -45,7 +59,7 @@ function assistant_reply(array $context, string $question, array $history=[]): s
     $ch=curl_init('https://api.x.ai/v1/responses');
     curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>55,CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.$key],CURLOPT_POSTFIELDS=>json_encode($body,JSON_THROW_ON_ERROR)]);
     $raw=curl_exec($ch);$status=curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
-    if ($raw===false || $status<200 || $status>=300) throw new RuntimeException('Grok could not answer (HTTP '.(int)$status.'). Check your API key, model access and API balance, then retry.');
+    if ($raw===false || $status<200 || $status>=300) throw new RuntimeException(assistant_provider_error((int)$status,(string)$raw));
     $response=json_decode($raw,true,512,JSON_THROW_ON_ERROR);$answer='';
     foreach($response['output']??[] as $item) foreach($item['content']??[] as $part) if (($part['type']??'')==='output_text') $answer.=$part['text']??'';
     if (!$answer) throw new RuntimeException('Grok returned no answer. Please retry.');

@@ -13,3 +13,8 @@ try{assistant_reply($context,'What next?');throw new RuntimeException('Missing k
 echo "Assistant: scoped context, admin access, secret exclusion, loopback restriction and missing key passed.\n";
 $own=assistant_global_context($creator,'2026-10');check($own['creator_count']===1 && $own['creators'][0]['creator']['id']===1,'Global scope leaked another creator');
 $all=assistant_global_context(['id'=>9,'role'=>'admin'],'2026-10');check($all['creator_count']===2 && count($all['creators'])===2,'Global admin context incomplete');
+
+check(str_contains(assistant_provider_error(400,json_encode(['error'=>'Incorrect API key provided.'])),'xAI rejected'), 'String API-key error not explained');
+check(str_contains(assistant_provider_error(401,json_encode(['error'=>['message'=>'Invalid API key']])),'xAI rejected'), 'Nested key error not explained');
+check(!str_contains(assistant_provider_error(400,json_encode(['error'=>'secret-value'])),'secret-value'), 'Raw provider response exposed');
+check(str_contains(assistant_provider_error(402,'{}'),'credits'), 'Billing error unclear');
