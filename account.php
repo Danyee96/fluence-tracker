@@ -75,4 +75,7 @@ page_header('Account', 'account');
     </form>
   </div>
 </div>
+<section class="panel sec"><div class="panel-h"><h3><?= icon('layers') ?>Social channels</h3></div>
+<?php if ($isC): ?><p>Connect your public profiles to track followers, subscribers, and growth automatically.</p><a class="btn primary" href="social.php">Manage my channels</a>
+<?php else: ?><p>Manage social channels from each creator’s tracker.</p><?php if ($u['role'] === 'superadmin'): ?><a class="btn" href="social-setup.php">Social sync setup</a><?php endif; ?><?php endif; ?></section>
 <?php page_footer(); ?>

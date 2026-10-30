@@ -85,4 +85,48 @@ CREATE TABLE IF NOT EXISTS activity (
     CONSTRAINT fk_activity_user FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO meta (k, v) VALUES ('schema_version', '2');
+INSERT INTO meta (k, v) VALUES ('schema_version', '5');
+
+
+CREATE TABLE IF NOT EXISTS creator_plans (
+    creator_id INT UNSIGNED PRIMARY KEY,
+    definition LONGTEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS tracker_values (
+    creator_id INT UNSIGNED NOT NULL,
+    month CHAR(7) NOT NULL,
+    item_key VARCHAR(60) NOT NULL,
+    value TEXT NULL,
+    status VARCHAR(4) NOT NULL DEFAULT 'todo',
+    PRIMARY KEY (creator_id, month, item_key),
+    FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE IF NOT EXISTS social_accounts (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, creator_id INT UNSIGNED NOT NULL, platform VARCHAR(20) NOT NULL,
+            handle VARCHAR(120) NOT NULL, profile_url VARCHAR(255) NOT NULL, display_name VARCHAR(255) NULL,
+            is_active INTEGER NOT NULL DEFAULT 1, sync_status VARCHAR(20) NOT NULL DEFAULT 'pending',
+            run_id VARCHAR(80) NULL, last_attempt DATETIME NULL, last_synced DATETIME NULL,
+            next_sync DATETIME NULL, locked_until DATETIME NULL, last_error VARCHAR(255) NULL,
+            created_at DATETIME NOT NULL, UNIQUE (creator_id, platform, handle),
+            FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS social_snapshots (
+            account_id INT UNSIGNED NOT NULL, snapshot_date CHAR(10) NOT NULL, followers BIGINT UNSIGNED NULL,
+            posts BIGINT UNSIGNED NULL, likes BIGINT UNSIGNED NULL, views BIGINT UNSIGNED NULL, captured_at DATETIME NOT NULL,
+            PRIMARY KEY (account_id, snapshot_date), FOREIGN KEY (account_id) REFERENCES social_accounts(id) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+
+CREATE TABLE IF NOT EXISTS creator_meetings (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY, creator_id INT UNSIGNED NOT NULL, meeting_date DATE NOT NULL,
+        attendees TEXT NOT NULL, discussion TEXT NULL, actionables TEXT NULL,
+        author_id INT UNSIGNED NULL, created_at DATETIME NOT NULL, updated_at DATETIME NOT NULL,
+        revision INTEGER NOT NULL DEFAULT 1,
+        FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

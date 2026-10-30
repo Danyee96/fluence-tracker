@@ -19,7 +19,7 @@ if (!$isCreator) json_out(['ok' => false, 'error' => 'Unknown creator'], 404);
 $viewerActions = ['feedback_add', 'feedback_del'];
 if (in_array($action, $viewerActions, true)) {
     if (!can_view_creator($u, $cid)) json_out(['ok' => false, 'error' => 'No access to this creator.'], 403);
-} elseif (!can_edit_creator($u, $cid)) {
+} elseif (!can_edit_creator($u, $cid) && !($action === 'item_value' && is_staff($u))) {
     json_out(['ok' => false, 'error' => 'You can view this tracker but not edit it.'], 403);
 }
 
@@ -28,22 +28,46 @@ $result = ['ok' => true];
 
 try {
     switch ($action) {
+        case 'item_value':
+            $key = (string)($in['key'] ?? '');
+            $item = plan_item($cid, $key);
+            if (!$month || !$item) $bad('This item no longer exists. Refresh the tracker.');
+            if ($item['kind'] === 'goal' && ($item['source'] ?? 'manual') !== 'manual') $bad('Update this goal through monthly numbers.');
+            if ($item['kind'] === 'task' && !empty($item['children'])) $bad('Update the subtasks to change this task’s progress.');
+            try { $value = typed_value($item['type'] ?? 'check', $in['value'] ?? ''); }
+            catch (InvalidArgumentException $e) { $bad($e->getMessage()); }
+            $progress = item_progress($item, $value);
+            $st = $progress['status'];
+            db()->beginTransaction();
+            if ($item['kind'] === 'task') save_status($cid, $month, $key, $st);
+            upsert('tracker_values', ['creator_id', 'month', 'item_key'], [
+                'creator_id' => $cid, 'month' => $month, 'item_key' => $key, 'value' => $value, 'status' => $st,
+            ]);
+            log_activity($cid, $me, $item['kind'] === 'goal' ? 'goal_result' : 'status', $month, ($item['title'] ?? $item['t']) . ' → ' . STATUS_LABEL[$st]);
+            db()->commit();
+            $result['value'] = $value;
+            $result['status'] = $st;
+            $result['percent'] = progress_percent($progress['percent'], $st === 'cp');
+            break;
+
         case 'status':
             $key = (string)($in['key'] ?? '');
             $st  = (string)($in['status'] ?? '');
-            if (!$month || !in_array($key, milestone_keys(), true) || !in_array($st, STATUSES, true)) $bad();
+            if (!$month || !in_array($key, milestone_keys($cid), true) || !in_array($st, STATUSES, true)) $bad();
+            $item = plan_item($cid, $key);
+            if (($item['type'] ?? 'check') !== 'check') $bad('Save a value with this task.');
             save_status($cid, $month, $key, $st);
-            log_activity($cid, $me, 'status', $month, milestone_title($key) . ' → ' . STATUS_LABEL[$st]);
+            log_activity($cid, $me, 'status', $month, milestone_title($key, $cid) . ' → ' . STATUS_LABEL[$st]);
             break;
 
         case 'note':
             $phase = (string)($in['phase'] ?? '');
-            if (!$month || !in_array($phase, array_column(phases(), 'key'), true)) $bad();
+            if (!$month || !in_array($phase, array_column(phases($cid), 'key'), true)) $bad();
             upsert('phase_notes', ['creator_id', 'month', 'phase_key'], [
                 'creator_id' => $cid, 'month' => $month, 'phase_key' => $phase,
                 'notes' => mb_substr((string)($in['notes'] ?? ''), 0, 5000),
             ]);
-            log_activity($cid, $me, 'note', $month, phase_name($phase));
+            log_activity($cid, $me, 'note', $month, phase_name($phase, $cid));
             break;
 
         case 'entry':
@@ -66,17 +90,7 @@ try {
             break;
 
         case 'goals':
-            $g = $in['goals'] ?? [];
-            upsert('creator_goals', ['creator_id'], [
-                'creator_id'     => $cid,
-                'target_revenue' => max(0, num_or_null($g['target_revenue'] ?? 0) ?? 0),
-                'target_subs'    => max(0, num_or_null($g['target_subs'] ?? 0, true) ?? 0),
-                'target_streams' => max(0, num_or_null($g['target_streams'] ?? 0, true) ?? 0),
-                'updated_at'     => now(),
-            ]);
-            log_activity($cid, $me, 'goals', null);
-            break;
-
+            json_out(['ok' => false, 'error' => 'Admins manage targets in Edit creator plan.'], 403);
         case 'feedback_add':
             $body = trim((string)($in['body'] ?? ''));
             if (!$month || $body === '') $bad('Write something first.');

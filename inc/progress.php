@@ -4,28 +4,29 @@ defined('FL') or exit;
 const STATUSES = ['todo', 'ip', 'cp', 'sk'];
 const STATUS_LABEL = ['todo' => 'To do', 'ip' => 'In progress', 'cp' => 'Complete', 'sk' => 'Skipped'];
 
-function phases(): array
+function phases(?int $cid = null): array
 {
+    if ($cid !== null) return creator_plan($cid)['phases'];
     static $p = null;
     return $p ??= require __DIR__ . '/phases.php';
 }
 
-function milestone_keys(): array
+function milestone_keys(?int $cid = null): array
 {
     $keys = [];
-    foreach (phases() as $p) foreach ($p['miles'] as $m) $keys[] = $m['key'];
+    foreach (phases($cid) as $p) foreach (task_leaves($p['miles']) as $m) $keys[] = $m['key'];
     return $keys;
 }
 
-function milestone_title(string $key): string
+function milestone_title(string $key, ?int $cid = null): string
 {
-    foreach (phases() as $p) foreach ($p['miles'] as $m) if ($m['key'] === $key) return $m['t'];
+    foreach (phases($cid) as $p) foreach (task_nodes($p['miles']) as $m) if ($m['key'] === $key) return $m['t'];
     return $key;
 }
 
-function phase_name(string $key): string
+function phase_name(string $key, ?int $cid = null): string
 {
-    foreach (phases() as $p) if ($p['key'] === $key) return $p['name'];
+    foreach (phases($cid) as $p) if ($p['key'] === $key) return $p['name'];
     return $key;
 }
 
@@ -42,6 +43,11 @@ function get_statuses(int $cid, string $month): array
     }
     $map = [];
     foreach ($rows as $r) $map[$r['milestone_key']] = $r['status'];
+    $values = tracker_values($cid, $month);
+    foreach (phases($cid) as $phase) foreach (task_leaves($phase['miles']) as $item) {
+        $key = $item['key'];
+        $map[$key] = item_progress($item, $values[$key]['value'] ?? null, $map[$key] ?? 'todo')['status'];
+    }
     return [$map, $from];
 }
 
@@ -50,40 +56,44 @@ function save_status(int $cid, string $month, string $key, string $status): void
 {
     [$map] = get_statuses($cid, $month);
     $map[$key] = $status;
-    db()->beginTransaction();
-    foreach (milestone_keys() as $k) {
+    $ownsTransaction = !db()->inTransaction();
+    if ($ownsTransaction) db()->beginTransaction();
+    foreach (milestone_keys($cid) as $k) {
         upsert('milestone_status', ['creator_id', 'month', 'milestone_key'], [
             'creator_id' => $cid, 'month' => $month, 'milestone_key' => $k, 'status' => $map[$k] ?? 'todo',
         ]);
     }
-    db()->commit();
+    if ($ownsTransaction) db()->commit();
 }
 
 /** Phase %, overall %, and the current phase. */
-function compute_progress(array $map): array
+function compute_progress(array $map, ?int $cid = null, ?array $values = null): array
 {
-    $out = []; $tot = 0; $done = 0; $current = null; $anyStarted = false;
-    foreach (phases() as $i => $p) {
-        $d = 0; $a = 0; $ip = false;
-        foreach ($p['miles'] as $m) {
-            $s = $map[$m['key']] ?? 'todo';
-            if ($s === 'sk') continue;
-            $a++;
-            if ($s === 'cp') $d++;
-            if ($s === 'ip') $ip = true;
+    $values ??= [];
+    $out = []; $total = 0; $sum = 0.0; $doneTotal = 0; $current = null; $anyStarted = false;
+    foreach (phases($cid) as $i => $phase) {
+        $done = 0; $active = 0; $points = 0.0; $started = false;
+        foreach (task_leaves($phase['miles']) as $item) {
+            $key = $item['key'];
+            $p = item_progress($item, $values[$key]['value'] ?? null, $map[$key] ?? 'todo');
+            if ($p['status'] === 'sk') continue;
+            $active++; $points += $p['percent'];
+            if ($p['status'] === 'cp') $done++;
+            if ($p['status'] !== 'todo') $started = true;
         }
-        $pct = $a ? (int)round($d / $a * 100) : 100;
-        $status = ($a === 0 || $d === $a) ? 'cp' : (($d > 0 || $ip) ? 'ip' : 'ns');
+        $complete = (bool)$phase['miles'] && ($active === 0 || $done === $active);
+        $status = $complete ? 'cp' : ($started ? 'ip' : 'ns');
+        $percent = $active ? progress_percent($points / $active, $complete) : ($complete ? 100 : 0);
         if ($status !== 'ns') $anyStarted = true;
-        if ($current === null && $status !== 'cp') $current = $i;
-        $out[] = ['key' => $p['key'], 'label' => $p['short'], 'pct' => $pct, 'status' => $status];
-        $tot += $a; $done += $d;
+        if ($current === null && !$complete) $current = $i;
+        $out[] = ['key'=>$phase['key'], 'label'=>$phase['short'], 'pct'=>$percent, 'status'=>$status];
+        $total += $active; $sum += $points; $doneTotal += $done;
     }
-    $overall = $tot ? (int)round($done / $tot * 100) : 0;
-    if ($current === null)  $cur = ['k' => 'done', 'label' => 'Complete', 'pct' => 100];
-    elseif (!$anyStarted)   $cur = ['k' => 'new', 'label' => 'Not started', 'pct' => 0];
-    else                    $cur = ['k' => $out[$current]['key'], 'label' => $out[$current]['label'], 'pct' => $out[$current]['pct']];
-    return ['phases' => $out, 'overall' => $overall, 'current' => $cur];
+    $overall = $total ? progress_percent($sum / $total, $doneTotal === $total) : ($out && $current === null ? 100 : 0);
+    if ($current === null && $out) $cur = ['k'=>'done','label'=>'Complete','pct'=>100];
+    elseif (!$out || !$anyStarted) $cur = ['k'=>'new','label'=>'Not started','pct'=>0];
+    else $cur = ['k'=>$out[$current]['key'],'label'=>$out[$current]['label'],'pct'=>$out[$current]['pct']];
+    return ['phases'=>$out,'overall'=>$overall,'current'=>$cur];
 }
 
 /* ---------- entries & goals ---------- */
@@ -141,6 +151,10 @@ function activity_verb(array $r): string
         'status'   => 'moved a step' . ($r['detail'] ? ': ' . $r['detail'] : ''),
         'note'     => 'edited ' . ($r['detail'] ?: 'phase') . " notes ($m)",
         'goals'    => 'changed goal targets',
+        'meeting' => $r['detail'] ?: 'updated a meeting log',
+        'social' => 'updated social channels' . ($r['detail'] ? ': ' . $r['detail'] : ''),
+        'plan' => 'updated destinations and path',
+        'goal_result' => 'updated a destination result' . ($r['detail'] ? ': ' . $r['detail'] : ''),
         'feedback' => "left feedback on $m",
         default    => $r['action'],
     };
@@ -215,7 +229,8 @@ function dashboard_data(string $month): array
     foreach ($creators as $c) {
         $cid = (int)$c['id'];
         [$map] = get_statuses($cid, $month);
-        $prog  = compute_progress($map);
+        $values = tracker_values($cid, $month);
+        $prog  = compute_progress($map, $cid, $values);
         $entry = get_entry($cid, $month);
 
         $rev = $entry ? (float)$entry['sponsor_rev'] + (float)$entry['info_rev'] : null;
@@ -225,6 +240,9 @@ function dashboard_data(string $month): array
             $subG = $prev !== false ? (int)$entry['subscribers'] - (int)$prev : null;
         }
         $lm = q('SELECT last_meeting FROM monthly_entries WHERE creator_id=? AND month<=? AND last_meeting IS NOT NULL ORDER BY month DESC LIMIT 1', [$cid, $month])->fetchColumn();
+
+        $loggedMeeting = q('SELECT MAX(meeting_date) FROM creator_meetings WHERE creator_id=? AND meeting_date<=?', [$cid, date('Y-m-t', strtotime($month . '-01'))])->fetchColumn();
+        if ($loggedMeeting && (!$lm || $loggedMeeting > $lm)) $lm = $loggedMeeting;
 
         $spark = array_map(fn($m) => $win[$cid][$m]['rev'] ?? null, $months);
         $sparkSubs = array_map(fn($m) => $win[$cid][$m]['subs'] ?? null, $months);
@@ -250,6 +268,7 @@ function dashboard_data(string $month): array
             'hue'          => hue($cid),
             'active'       => $active,
             'phases'       => $prog['phases'],
+            'goals'        => creator_goal_progress($cid, $month, $entry, $values),
             'overall'      => $prog['overall'],
             'current'      => $prog['current'],
             'rev'          => $rev,

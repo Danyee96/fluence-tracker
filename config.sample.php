@@ -16,6 +16,9 @@ return [
         'sqlite_path' => __DIR__ . '/data/fluence.sqlite',
     ],
 
+    // Optional: keep the real token in config.local.php (Git-ignored).
+    'apify' => ['token' => '', 'refresh_hours' => 24, 'max_run_cost_usd' => 0.05],
+
     'app_name' => 'Fluence',
     'timezone' => 'Asia/Karachi',
 

@@ -80,6 +80,28 @@
       '<div class="stat"><span class="sl">Last meeting</span><span class="sv sm">' + esc(cr.lastMeeting || '—') + '</span></div>';
   }
 
+  function goalValue(type, value) {
+    if (value == null || value === '') return '—';
+    if (type === 'money') return '$' + U.num(value);
+    if (type === 'number') return U.num(value);
+    return esc(value);
+  }
+  function goalsHtml(cr, compact) {
+    var goals = cr.goals || [], shown = compact ? goals.slice(0, 3) : goals;
+    var completed = goals.filter(function (goal) { return goal.status === 'cp'; }).length;
+    var labels = {todo:'To do', ip:'In progress', cp:'Complete', sk:'Skipped'};
+    return '<div class="dash-goals' + (compact ? ' compact' : '') + '"><div class="dash-goals-heading"><span>Destination goals</span><small>' + completed + '/' + goals.length + ' complete</small></div>' +
+      (goals.length ? shown.map(function (goal) {
+        var current = goal.type === 'check' ? (goal.status === 'cp' ? 'Complete' : labels[goal.status]) : goalValue(goal.type, goal.current);
+        var target = goal.target !== '' && goal.target != null ? goalValue(goal.type, goal.target) : '';
+        var status = goal.measurable ? goal.percent + '%' : labels[goal.status];
+        return '<div class="dash-goal' + (goal.status === 'cp' ? ' achieved' : '') + '" data-goal-key="' + esc(goal.key) + '"><div class="dash-goal-top"><span class="dash-goal-name">' + esc(goal.title) + '</span><b>' + esc(status) + '</b></div>' +
+          '<div class="dash-goal-numbers"><span class="dash-goal-current">' + current + '</span>' + (target ? '<span class="dash-goal-target"> / ' + target + '</span>' : '') + '</div>' +
+          (goal.measurable ? '<div class="dash-goal-bar"><i style="width:' + goal.percent + '%"></i></div>' : '') + '</div>';
+      }).join('') : '<p class="hint">No destination goals set.</p>') +
+      (compact && goals.length > shown.length ? '<span class="dash-goals-more">+' + (goals.length - shown.length) + ' more · Open overview to see all</span>' : '') + '</div>';
+  }
+
   function renderGrid() {
     var f = FILTERS.find(function (x) { return x.k === state.filter; }) || FILTERS[0];
     var shown = sorted(list.filter(function (c) {
@@ -99,12 +121,13 @@
 
     if (state.view === 'list') {
       box.className = 'listview';
-      box.innerHTML = '<div class="mtable-wrap"><table class="mtable dtable"><thead><tr><th>Creator</th><th>Phase</th><th>Progress</th><th class="n">Revenue</th><th class="n">Sub growth</th><th>Last meeting</th><th>Updated</th></tr></thead><tbody>' +
+      box.innerHTML = '<div class="mtable-wrap"><table class="mtable dtable"><thead><tr><th>Creator</th><th>Phase</th><th>Path progress</th><th>Destination goals</th><th class="n">Revenue</th><th class="n">Sub growth</th><th>Last meeting</th><th>Updated</th></tr></thead><tbody>' +
         shown.map(function (cr) {
           var i = list.indexOf(cr);
           return '<tr data-i="' + i + '" tabindex="0" class="' + (cr.active ? '' : 'off') + '"><td><div class="who-cell">' + U.avatar(cr.initials, cr.hue, 'sm') + '<div><b>' + esc(cr.name) + '</b><small>' + sub(cr) + '</small></div>' + tag(cr) + '</div></td>' +
             '<td><span class="phpill ' + tone(cr) + '">' + esc(cr.current.label) + '</span></td>' +
             '<td><div class="prog-cell">' + segbar(cr) + '<b>' + cr.overall + '%</b></div></td>' +
+            '<td class="dash-goals-cell">' + goalsHtml(cr, true) + '</td>' +
             '<td class="n">' + U.money(cr.rev) + '</td><td class="n ' + sgc(cr.subGrowth) + '">' + U.growth(cr.subGrowth) + '</td>' +
             '<td>' + esc(cr.lastMeeting || '—') + '</td><td class="muted">' + esc(cr.updatedAgo || '—') + '</td></tr>';
         }).join('') + '</tbody></table></div>';
@@ -123,6 +146,7 @@
         '<div class="phrow"><span class="phpill ' + k + '">' + esc(cr.current.label) + '</span><span class="pct">' + cr.overall + '<small>%</small></span></div>' +
         segbar(cr) +
         '<div class="stats">' + statsHtml(cr) + '</div>' +
+        goalsHtml(cr, true) +
         '<div class="card-spark"><span class="sl">Revenue · 6 mo</span>' + U.spark(cr.spark, 220, 34, '#22d3ee') + '</div>' +
         '<div class="card-foot"><span>' + I('clock') + (cr.updatedAgo ? 'Updated ' + esc(cr.updatedAgo) : 'No activity yet') + '</span>' +
         (cr.feedback ? '<span>' + I('chat') + cr.feedback + '</span>' : '') +
@@ -150,6 +174,7 @@
       '<div class="mmeta">' + (cur.k === 'done' ? 'Every phase complete' : cur.k === 'new' ? 'Roadmap not started yet' : cur.pct + '% through this phase') + ' · ' + esc(D.monthLabel) + '</div></div></div>' +
       '<div class="psteps">' + steps + '</div>' +
       '<div class="mstats">' + statsHtml(cr) + '</div>' +
+      goalsHtml(cr, false) +
       '<div class="m-charts"><div><span class="sl">Revenue · 6 mo</span>' + U.spark(cr.spark, 220, 46, '#6366f1') + '</div><div><span class="sl">Subscribers · 6 mo</span>' + U.spark(cr.sparkSubs, 220, 46, '#22d3ee') + '</div></div>' +
       '<div class="m-foot"><span class="muted">' + I('clock') + (cr.updatedAgo ? 'Updated ' + esc(cr.updatedAgo) : 'No activity yet') + (cr.feedback ? ' · ' + cr.feedback + ' feedback note' + (cr.feedback === 1 ? '' : 's') : '') + '</span>' +
       '<div class="m-actions">' + (D.role === 'superadmin' ? '<a class="btn sm" href="users.php#u' + cr.id + '">' + I('key') + '<span>Login</span></a>' : '') +

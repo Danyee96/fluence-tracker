@@ -59,7 +59,7 @@ page_header('Dashboard', 'dashboard');
     'role'       => $u['role'],
     'creators'   => $data['cards'],
     'kpi'        => $data['kpi'],
-    'phases'     => array_map(fn($p) => ['key' => $p['key'], 'label' => $p['short']], phases()),
+    'phases'     => array_values(array_reduce($data['cards'], function ($all, $card) { foreach ($card['phases'] as $p) $all[$p['key']] = ['key' => $p['key'], 'label' => $p['label']]; return $all; }, [])),
     'feed'       => activity_feed(null, 14),
 ]) ?>;</script>
 <?php page_footer(['dashboard.js']); ?>

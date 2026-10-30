@@ -559,3 +559,113 @@ li.st-sk .spill{color:var(--muted2);background:transparent;border-color:var(--li
 .two{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
 @media(max-width:760px){.two{grid-template-columns:1fr}}
 @media(max-width:560px){.gfoot{flex-direction:column;align-items:flex-start;gap:6px}.kpis.tiles .kpi-v{font-size:22px}.hero-ring{padding:12px}.ring-txt{max-width:none}}
+
+/* Creator-specific plans */
+.plan-toolbar{display:flex;justify-content:flex-end;margin:18px 0}
+.plan-node,.plan-add{border:1px solid var(--line);background:var(--panel);border-radius:12px;margin:12px 0;min-width:0}
+.plan-node>summary,.plan-add>summary{padding:16px;cursor:pointer;font-weight:600;overflow-wrap:anywhere}
+.plan-node>summary .muted{display:block;font-size:12px;font-weight:400;margin-top:4px}
+.plan-node-body,.plan-add>.plan-form{padding:0 16px 16px}
+.plan-node-body .plan-node-body{padding:0 12px 12px}
+.plan-form{margin-top:12px}
+.plan-form textarea{width:100%;resize:vertical}
+.plan-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.plan-actions,.result-actions{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.plan-actions .danger{margin-left:auto}
+.kpis.tiles{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr))}
+.goal-result{font-family:var(--display);font-size:24px;font-weight:600;overflow-wrap:anywhere;margin:10px 0;white-space:pre-wrap}
+.goal-description,.task-description{font-size:13px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0}
+.goal-target{font-size:13px;color:var(--muted);overflow-wrap:anywhere;white-space:pre-wrap}
+.result-form{display:grid;gap:10px;margin-top:12px}
+.result-form label{display:grid;gap:5px;font-size:12px;color:var(--muted);min-width:0;flex:1}
+.result-form input,.result-form select,.result-form textarea{width:100%;padding:9px 10px;background:var(--bg2);border:1px solid var(--line);border-radius:8px;color:var(--fg);font:inherit;min-width:0}
+.result-form textarea{resize:vertical;min-height:65px}
+.result-message{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.task-tree{list-style:none;padding:0;margin:14px 0;display:grid;gap:12px}
+.task-node{border:1px solid var(--line);border-radius:10px;padding:14px;min-width:0}
+.task-tree .task-tree{border-left:2px solid var(--line2);padding-left:12px;margin-bottom:0}
+.task-heading{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.task-heading h4{font-size:14px;flex:1;min-width:100px;overflow-wrap:anywhere}
+.task-node.st-cp>.task-heading .sdot{background:var(--grn);color:var(--bg);border-color:var(--grn)}
+.stepper{grid-template-columns:repeat(auto-fit,minmax(140px,1fr))}
+@media(max-width:560px){.plan-fields{grid-template-columns:1fr}.task-node{padding:10px}.task-tree .task-tree{padding-left:6px}.result-actions{align-items:stretch}.result-actions label{flex-basis:100%}.result-actions button{width:100%}.plan-node-body{padding-inline:10px}}
+
+/* Connected social channels */
+.social-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,360px),1fr));gap:16px}
+.social-card{min-width:0;padding:20px;overflow-wrap:anywhere}
+.social-card-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.social-platform{font-size:12px;font-weight:700;color:var(--cya)}
+.platform-instagram{color:#f493cc}.platform-youtube{color:#ff8181}.platform-facebook{color:#89b2ff}
+.social-status{font-size:11px;color:var(--muted)}
+.social-handle{font-family:var(--display);font-size:17px;font-weight:600;text-decoration:none}
+.social-handle .ic{width:13px;height:13px}
+.social-main{display:flex;align-items:baseline;flex-wrap:wrap;gap:10px;margin:20px 0 10px}
+.social-main b{font-size:34px;font-family:var(--display);line-height:1.15}.social-main span{font-size:13px;color:var(--muted)}
+.social-secondary{display:flex;gap:18px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin:16px 0}
+.social-secondary span{display:grid;gap:4px}.social-secondary b{font-size:14px;color:var(--fg)}
+.social-error{font-size:12px;color:var(--amb);margin:12px 0}
+.social-controls{display:flex;gap:8px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--line);margin-top:14px}
+.social-controls form{margin:0}.social-history{margin-top:16px;font-size:13px}.social-history summary{cursor:pointer;color:var(--muted)}
+.social-add{margin:20px 0}.social-link-form{display:grid;grid-template-columns:minmax(120px,1fr) minmax(180px,2fr) auto;gap:14px;align-items:end}
+.social-code{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--bg2);padding:16px;border-radius:10px;font-size:12px}
+.social-spark .spark{width:100%;height:45px}
+@media(max-width:640px){.social-link-form{grid-template-columns:1fr}.social-main b{font-size:28px}}
+
+/* Compact phases with horizontal task summaries */
+.task-summary-rail{display:flex;gap:10px;overflow-x:auto;overscroll-behavior-inline:contain;padding:4px 0 12px;scrollbar-width:thin}
+.task-summary-rail .pstep{flex:1 0 190px;max-width:none;border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(255,255,255,.025);text-align:left;min-width:0}
+.task-summary-rail .pl{white-space:normal;overflow-wrap:anywhere}
+.task-summary-rail .pv{font-variant-numeric:tabular-nums}
+.phase-expand{margin-top:8px;gap:8px}.phase-expand .ic{transition:transform .2s}.phase-expand[aria-expanded=true] .ic{transform:rotate(180deg)}
+.phase-details{margin-top:18px;border-top:1px solid var(--line);padding-top:8px}
+.task-progress-track{height:5px;background:rgba(255,255,255,.07);border-radius:5px;overflow:hidden;margin:10px 0}
+.task-progress-fill{display:block;height:100%;background:var(--grad);transition:width .2s}
+.st-cp>.task-progress-track>.task-progress-fill{background:var(--grn)}
+.result-form .task-check{display:flex;align-items:center;gap:10px;cursor:pointer;min-height:36px}
+.result-form .task-check input{width:18px;height:18px;accent-color:var(--cya);margin:0;flex:none}
+.goal-auto-status{font-size:12px;color:var(--muted);margin:8px 0}
+.result-message .btn{margin-left:10px}
+@media(max-width:560px){.task-summary-rail .pstep{flex-basis:165px}.task-summary-rail .pl{font-size:12px}}
+
+/* Creator meeting logs */
+.meeting-editor{padding:0;margin-bottom:18px}.meeting-editor>summary{padding:18px 20px;cursor:pointer;font-weight:600;color:var(--cya)}
+.meeting-editor>form{padding:0 20px 20px}
+.meeting-fields{display:grid;grid-template-columns:minmax(150px,1fr) 2fr;gap:16px}
+.meeting-editor textarea{width:100%;resize:vertical;min-height:100px}
+.meeting-list{display:grid;gap:16px}
+.meeting-log-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.meeting-log-head h3{font-size:18px}.meeting-attendees{font-size:13px;color:var(--muted);overflow-wrap:anywhere}.meeting-attendees b{color:var(--fg);margin-right:8px}
+.meeting-notes{display:grid;grid-template-columns:1fr 1fr;gap:20px;border-top:1px solid var(--line);padding-top:16px}
+.meeting-notes>div{min-width:0}.meeting-notes h4{font-size:13px;color:var(--cya)}.meeting-notes p{font-size:13px;white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);line-height:1.65}
+.meeting-log-actions,.meeting-pagination{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:16px}.meeting-log-actions form{margin:0}.meeting-pagination{justify-content:center;font-size:12px;color:var(--muted)}
+@media(max-width:640px){.meeting-fields,.meeting-notes{grid-template-columns:1fr}.meeting-editor>form{padding:0 14px 14px}.meeting-editor>summary{padding:16px 14px}}
+
+/* Destination progress on the staff dashboard */
+.dash-goals{border-top:1px solid var(--line);padding-top:14px;margin-top:16px;display:grid;gap:12px;min-width:0;text-align:left}
+.dash-goals-heading{display:flex;align-items:baseline;justify-content:space-between;gap:10px;color:var(--fg);font-size:12px;font-weight:600;flex-wrap:wrap}
+.dash-goals-heading small{font-size:10px;color:var(--muted);font-weight:400}
+.dash-goal{min-width:0}.dash-goal-top{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:12px}
+.dash-goal-name{color:var(--muted);min-width:0;overflow-wrap:anywhere}.dash-goal-top>b{font-size:11px;color:var(--cya);white-space:nowrap}
+.dash-goal-numbers{font-family:var(--display);font-size:14px;overflow-wrap:anywhere;white-space:pre-wrap;line-height:1.5;margin-top:3px}
+.dash-goal-current{color:var(--fg);font-weight:600}.dash-goal-target{color:var(--muted2);font-size:12px}
+.dash-goal-bar{height:4px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.07);margin-top:6px}
+.dash-goal-bar>i{display:block;height:100%;background:var(--grad)}
+.dash-goal.achieved .dash-goal-top>b{color:var(--grn)}.dash-goal.achieved .dash-goal-bar>i{background:var(--grn)}
+.dash-goals.compact .dash-goal-numbers{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dash-goals-more{font-size:11px;color:var(--muted)}
+.dash-goals-cell{min-width:240px;max-width:300px;white-space:normal!important}.dash-goals-cell .dash-goals{border:0;margin:0;padding:0}
+.mcard>.dash-goals{margin-bottom:20px}.mcard>.dash-goals .dash-goal-numbers{font-size:18px}
+
+/* Keep each task's progress inside its own card. */
+.task-summary-rail .pstep::before{display:none}
+.task-summary-rail .pstep{gap:9px;padding:16px 14px;transition:border-color .2s,background .2s}
+.task-summary-rail .pstep:hover{border-color:rgba(34,211,238,.4);background:rgba(34,211,238,.04)}
+.task-summary-rail .pstep.c{border-color:rgba(34,211,238,.25)}
+.task-summary-rail .pstep.d{border-color:rgba(52,211,153,.3)}
+.task-summary-rail .pl{flex:1;text-align:center}
+.task-summary-rail .pv{margin:0;color:var(--muted);font-weight:600}
+.task-summary-rail .pstep.c .pv{color:var(--cya)}
+.task-summary-rail .pstep.d .pv{color:var(--grn)}
+.task-summary-track{display:block;align-self:stretch;height:5px;background:rgba(255,255,255,.08);border-radius:999px;overflow:hidden;margin-top:3px}
+.task-summary-track>span{display:block;height:100%;background:var(--grad);border-radius:inherit;transition:width .25s}
+.task-summary-rail .pstep.d .task-summary-track>span{background:var(--grn)}

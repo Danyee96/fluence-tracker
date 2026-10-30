@@ -1,7 +1,7 @@
 <?php
 defined('FL') or exit;
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 5;
 
 /** Full table definitions (safe to re-run: CREATE ... IF NOT EXISTS). */
 function schema_statements(bool $sqlite): array
@@ -182,7 +182,7 @@ function column_exists(string $t, string $c): bool
 function migrate(): void
 {
     $sqlite = is_sqlite();
-    foreach (schema_statements($sqlite) as $sql) db()->exec($sql);
+    foreach (array_merge(schema_statements($sqlite), plan_schema($sqlite), social_schema($sqlite), meeting_schema($sqlite)) as $sql) db()->exec($sql);
     $add = ['handle' => 'VARCHAR(120) NULL', 'niche' => 'VARCHAR(120) NULL', 'channel_url' => 'VARCHAR(255) NULL', 'start_month' => 'CHAR(7) NULL'];
     foreach ($add as $col => $def) {
         if (!column_exists('users', $col)) db()->exec("ALTER TABLE users ADD COLUMN $col " . ($sqlite ? 'TEXT NULL' : $def));

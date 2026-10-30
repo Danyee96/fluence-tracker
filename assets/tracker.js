@@ -1,7 +1,8 @@
 /* Fluence — creator tracker (month-based) */
 (function () {
   var F = window.FL, U = window.FLU, esc = U.esc, I = U.icon;
-  var ORDER = ['todo', 'ip', 'cp', 'sk'], LABEL = { todo: 'To do', ip: 'In progress', cp: 'Complete', sk: 'Skipped' };
+  var LABEL = { todo: 'To do', ip: 'In progress', cp: 'Complete', sk: 'Skipped' };
+  var drafts = {};
   var C = { spon: '#6366f1', info: '#0ea5b7', subs: '#22d3ee' };
   if (Array.isArray(F.statuses)) F.statuses = {};
   if (Array.isArray(F.notes)) F.notes = {};
@@ -24,18 +25,49 @@
       return res;
     });
   }
-  window.addEventListener('beforeunload', function (e) { if (inflight) { e.preventDefault(); e.returnValue = ''; } });
+  window.addEventListener('beforeunload', function (e) { if (inflight || Object.keys(drafts).length) { e.preventDefault(); e.returnValue = ''; } });
 
   /* ---------- progress ---------- */
-  function st(key) { return F.statuses[key] || 'todo'; }
-  function counts(p) {
-    var d = 0, a = 0, ip = false;
-    p.miles.forEach(function (m) { var s = st(m.key); if (s === 'sk') return; a++; if (s === 'cp') d++; if (s === 'ip') ip = true; });
-    return { done: d, active: a, ip: ip };
+  function itemProgress(item, saved, legacy) {
+    var type = item.type || 'check', value = saved ? saved.value : null, target = String(item.target == null ? '' : item.target).trim();
+    if (type === 'check') {
+      if (value == null || value === '') return {status:legacy || 'todo', percent:legacy === 'cp' ? 100 : 0};
+      var checked = value === true || value === 1 || value === '1';
+      return {status:checked ? 'cp' : 'todo', percent:checked ? 100 : 0};
+    }
+    if (value == null && legacy === 'sk') return {status:'sk', percent:0};
+    value = String(value == null ? '' : value).trim();
+    if (!value || ((type === 'number' || type === 'money') && +value <= 0)) return {status:'todo', percent:0};
+    if (type === 'text') {
+      var done = !target || value.toLowerCase() === target.toLowerCase();
+      return {status:done ? 'cp' : 'ip', percent:done ? 100 : 0};
+    }
+    if (!target || +target <= 0) return {status:'ip', percent:0};
+    var pct = Math.min(100, +value / +target * 100);
+    return {status:pct >= 100 ? 'cp' : 'ip', percent:pct};
   }
-  function phaseStatus(p) { var c = counts(p); if (c.active === 0 || c.done === c.active) return 'cp'; return (c.done > 0 || c.ip) ? 'ip' : 'ns'; }
-  function phasePct(p) { var c = counts(p); return c.active ? Math.round(c.done / c.active * 100) : 100; }
-  function overall() { var t = 0, d = 0; F.phases.forEach(function (p) { var c = counts(p); t += c.active; d += c.done; }); return t ? Math.round(d / t * 100) : 0; }
+  function displayedPct(progress) { return progress.status === 'cp' ? 100 : Math.min(99, Math.round(progress.percent)); }
+  function resultState(item) { return itemProgress(item, drafts[item.key] || F.values[item.key], F.statuses[item.key] || (F.values[item.key] || {}).status); }
+  function leaves(nodes) {
+    return nodes.reduce(function (all, node) { return all.concat(node.children && node.children.length ? leaves(node.children) : [node]); }, []);
+  }
+  function aggregate(nodes) {
+    var active = 0, done = 0, sum = 0, started = false;
+    leaves(nodes).forEach(function (item) {
+      var p = resultState(item);
+      if (p.status === 'sk') return;
+      active++; sum += p.percent;
+      if (p.status === 'cp') done++;
+      if (p.status !== 'todo') started = true;
+    });
+    var complete = nodes.length && (!active || done === active);
+    return {status:complete ? 'cp' : started ? 'ip' : 'todo', percent:active ? sum / active : complete ? 100 : 0, done:done, active:active};
+  }
+  function nodeProgress(node) { return node.children && node.children.length ? aggregate(node.children) : resultState(node); }
+  function nodeStatus(node) { return nodeProgress(node).status; }
+  function phaseStatus(p) { var status = aggregate(p.miles).status; return status === 'todo' ? 'ns' : status; }
+  function phasePct(p) { return displayedPct(aggregate(p.miles)); }
+  function overall() { return displayedPct(aggregate(F.phases.reduce(function (all, p) { return all.concat(p.miles); }, []))); }
   function currentIdx() { return F.phases.findIndex(function (p) { return phaseStatus(p) !== 'cp'; }); }
 
   function renderRing() {
@@ -43,8 +75,8 @@
     var started = F.phases.some(function (p) { return phaseStatus(p) !== 'ns'; });
     document.getElementById('ring').innerHTML =
       '<div class="ring-wrap">' + U.ring(pct, 128, 11) + '<div class="ring-c"><b>' + pct + '<small>%</small></b><span>overall</span></div></div>' +
-      '<div class="ring-txt"><span class="sl">Currently in</span><b>' + (cur ? esc(cur.num.replace('PHASE', 'Phase')) + ' · ' + esc(cur.name) : 'All phases complete 🎉') + '</b>' +
-      '<span class="muted">' + (cur ? (started ? phasePct(cur) + '% through this phase' : 'Roadmap not started') : 'Roadmap finished') + '</span></div>';
+      '<div class="ring-txt"><span class="sl">Currently in</span><b>' + (cur ? esc(cur.num.replace('PHASE', 'Phase')) + ' · ' + esc(cur.name) : (F.phases.length ? 'All phases complete 🎉' : 'No path phases yet')) + '</b>' +
+      '<span class="muted">' + (cur ? (started ? phasePct(cur) + '% through this phase' : 'Roadmap not started') : (F.phases.length ? 'Roadmap finished' : 'An admin can build your path')) + '</span></div>';
   }
 
   function renderInherit() {
@@ -55,49 +87,132 @@
 
   /* ---------- goals / KPI tiles ---------- */
   function totalRev(e) { return e ? (+e.spon || 0) + (+e.info || 0) : null; }
-  function deltaHtml(cur, prev, kind) {
-    if (cur == null || prev == null || !F.prev) return '<span class="delta">' + (F.prev ? 'No ' + esc(F.prev.name) + ' value' : 'First month logged') + '</span>';
-    var diff = cur - prev; if (!diff) return '<span class="delta">Same as ' + esc(F.prev.name) + '</span>';
-    var good = kind === 'lower' ? diff < 0 : diff > 0;
-    var txt = kind === 'money' ? (U.pctDelta(cur, prev) != null ? Math.abs(U.pctDelta(cur, prev)) + '%' : U.money(Math.abs(diff)))
-      : kind === 'lower' ? Math.abs(diff) + 'h' : U.kfmt(Math.abs(diff));
-    return '<span class="delta ' + (good ? 'up' : 'down') + '">' + (diff > 0 ? '▲ ' : '▼ ') + txt + ' vs ' + esc(F.prev.name) + '</span>';
+  function valueFormat(type, value) {
+    if (value == null || value === '') return '—';
+    return type === 'money' ? '$' + U.num(value) : type === 'number' ? U.num(value) : esc(value);
   }
-  var GOALS = [
-    { key: 'target_revenue', label: 'Monthly revenue', icon: 'dollar', fmt: function (v) { return '$' + U.num(v); }, cur: function (e) { return totalRev(e); }, prev: function (p) { return totalRev(p); }, kind: 'money' },
-    { key: 'target_subs', label: 'Subscribers', icon: 'users', fmt: U.num, cur: function (e) { return e ? e.subs : null; }, prev: function (p) { return p ? p.subs : null; }, kind: 'num' },
-    { key: 'target_streams', label: 'Income streams', icon: 'layers', fmt: U.num, cur: function (e) { return e ? e.streams : null; }, prev: function (p) { return p ? p.streams : null; }, kind: 'num' }
-  ];
+  var resultSavers = {}, resultBusy = {}, resultAgain = {}, itemIndex = {};
+  F.goalDefinitions.forEach(function (item) { itemIndex[item.key] = item; });
+  function indexTasks(nodes) { nodes.forEach(function (item) { itemIndex[item.key] = item; indexTasks(item.children || []); }); }
+  F.phases.forEach(function (phase) { indexTasks(phase.miles); });
+  function resultForm(item, kind) {
+    var saved = drafts[item.key] || F.values[item.key] || {}, type = item.type || 'check';
+    var checked = resultState(item).status === 'cp';
+    return '<form class="result-form" data-item="' + esc(item.key) + '" data-kind="' + kind + '">' +
+      (type === 'check' ? '<label class="task-check"><input name="value" type="checkbox"' + (checked ? ' checked' : '') + '>Mark complete</label>' :
+        '<label>Your result' + (type === 'money' ? ' ($)' : '') +
+        (type === 'text' ? '<textarea name="value" rows="2" maxlength="3000">' + esc(saved.value || '') + '</textarea>' :
+          '<input name="value" type="number" min="0" max="999999999999" step="0.01" value="' + esc(saved.value == null ? '' : saved.value) + '">') + '</label>') +
+      '<span class="result-message" role="status">Changes save automatically.</span></form>';
+  }
+  function resultMessage(key, message, failed) {
+    document.querySelectorAll('.result-form').forEach(function (form) {
+      if (form.dataset.item !== key) return;
+      var el = form.querySelector('.result-message'); el.textContent = message;
+      if (failed) {
+        var retry = document.createElement('button'); retry.type = 'button'; retry.className = 'btn sm ghost'; retry.textContent = 'Retry';
+        retry.addEventListener('click', function () { saveResult(key); }); el.appendChild(retry);
+      }
+    });
+  }
+  function saveResult(key) {
+    if (!drafts[key]) return;
+    if (resultBusy[key]) { resultAgain[key] = true; return; }
+    var value = drafts[key].value;
+    resultBusy[key] = true; resultMessage(key, 'Saving…');
+    send({action:'item_value', key:key, value:value}).then(function (res) {
+      resultBusy[key] = false;
+      if (res.ok) {
+        F.values[key] = {value:res.value, status:res.status}; F.statuses[key] = res.status;
+        if (drafts[key] && drafts[key].value === value) delete drafts[key];
+        if (!F.goalDefinitions.some(function (g) { return g.key === key; })) { F.inheritedFrom = null; renderInherit(); }
+        resultMessage(key, drafts[key] ? 'Saving…' : 'Saved');
+        paintProgress();
+      } else resultMessage(key, res.error || 'Not saved. Please retry.', true);
+      if (resultAgain[key]) { resultAgain[key] = false; saveResult(key); }
+    });
+  }
+  function bindResults(box) {
+    box.querySelectorAll('.result-form').forEach(function (form) {
+      var key = form.dataset.item, input = form.elements.value;
+      if (!resultSavers[key]) resultSavers[key] = U.debounce(function () { saveResult(key); }, 650);
+      function changed() {
+        if (!input.checkValidity()) { resultMessage(key, input.validationMessage); return; }
+        drafts[key] = {value:input.type === 'checkbox' ? (input.checked ? '1' : '0') : input.value};
+        resultMessage(key, 'Saving…'); paintProgress(); resultSavers[key]();
+      }
+      input.addEventListener('input', changed);
+      input.addEventListener('change', function () { changed(); resultSavers[key].flush(); });
+      input.addEventListener('blur', function () { resultSavers[key].flush(); });
+      form.addEventListener('submit', function (event) { event.preventDefault(); resultSavers[key].flush(); });
+    });
+  }
+  function summarySteps(nodes) {
+    return nodes.map(function (node, i) {
+      var p = nodeProgress(node), pct = displayedPct(p);
+      return '<button type="button" class="pstep ' + (p.status === 'cp' ? 'd' : p.status === 'ip' ? 'c' : 'g') + '" data-task-to="' + esc(node.key) + '"><span class="pdot">' + (p.status === 'cp' ? I('check') : i + 1) + '</span><span class="pl">' + esc(node.t) + '</span><span class="pv">' + pct + '%</span><span class="task-summary-track" aria-hidden="true"><span style="width:' + pct + '%"></span></span></button>';
+    }).join('');
+  }
+  function paintProgress() {
+    renderRing(); renderStepper();
+    var currentPhase = F.phases[currentIdx()];
+    F.phases.forEach(function (phase) {
+      var el = document.getElementById('ph-' + phase.key); if (!el) return;
+      var p = aggregate(phase.miles), pct = displayedPct(p);
+      el.classList.toggle('current', !!currentPhase && phase.key === currentPhase.key);
+      el.classList.toggle('complete', p.status === 'cp'); el.classList.toggle('inprogress', p.status === 'ip');
+      el.querySelector('.phase-percent').textContent = pct + '%';
+      el.querySelector('.ph-prog .track i').style.width = pct + '%';
+      var badge = el.querySelector('.phase-status'); badge.textContent = LABEL[p.status]; badge.className = 'badge phase-status ' + p.status;
+      el.querySelector('.task-summary-rail').innerHTML = summarySteps(phase.miles);
+    });
+    document.querySelectorAll('.task-node[data-task]').forEach(function (el) {
+      var item = itemIndex[el.dataset.task], p = nodeProgress(item), pct = displayedPct(p);
+      el.classList.remove('st-todo','st-ip','st-cp','st-sk'); el.classList.add('st-' + p.status);
+      el.querySelector('.task-progress-label').textContent = LABEL[p.status] + ' · ' + pct + '%';
+      el.querySelector('.task-progress-fill').style.width = pct + '%';
+    });
+    document.querySelectorAll('.goal[data-goal]').forEach(function (el) {
+      var g = itemIndex[el.dataset.goal], p = goalProgress(g), current = goalCurrent(g);
+      el.classList.toggle('done', p.status === 'cp');
+      el.querySelector('.goal-result').innerHTML = g.type === 'check' ? esc(LABEL[p.status]) : valueFormat(g.type, current);
+      el.querySelector('.goal-auto-status').textContent = LABEL[p.status] + ' · ' + displayedPct(p) + '%';
+      var bar = el.querySelector('.gbar i'); if (bar) bar.style.width = displayedPct(p) + '%';
+    });
+  }
+  function goalCurrent(g) {
+    return !g.source || g.source === 'manual' ? ((drafts[g.key] || F.values[g.key] || {}).value) : g.source === 'revenue' ? totalRev(F.entry) : F.entry ? F.entry[g.source] : null;
+  }
+  function goalProgress(g) { return itemProgress(g, {value:goalCurrent(g)}, (F.values[g.key] || {}).status); }
+
   function renderGoals() {
     var box = document.getElementById('goals');
-    box.innerHTML = GOALS.map(function (g) {
-      var tgt = +F.goals[g.key] || 0, cur = g.cur(F.entry), has = cur != null, pct = 0;
-      if (has) pct = g.lower ? (cur <= tgt ? 100 : Math.max(0, Math.round(tgt / cur * 100))) : (tgt > 0 ? Math.min(100, Math.round(cur / tgt * 100)) : 0);
-      var done = has && pct >= 100;
-      var tgtHtml = F.canEdit ? '<button type="button" class="tgt" data-g="' + g.key + '" title="Change target">' + g.fmt(tgt) + I('edit') + '</button>' : '<span class="tgt ro">' + g.fmt(tgt) + '</span>';
-      return '<div class="kpi goal' + (done ? ' done' : '') + '">' +
-        '<div class="kpi-l">' + I(g.icon) + esc(g.label) + (done ? '<span class="hit">' + I('check') + 'Goal hit</span>' : '') + '</div>' +
-        '<div class="kpi-v">' + (has ? g.fmt(cur) : '<span class="muted">—</span>') + '</div>' +
-        '<div class="kpi-s">' + deltaHtml(cur, g.prev(F.prev), g.kind) + '</div>' +
-        '<div class="gbar"><i style="width:' + pct + '%"></i></div>' +
-        '<div class="gfoot"><span>' + (!has ? 'Log ' + esc(F.monthName) + ' to track' : g.lower ? (done ? 'At or under target' : pct + '% to target') : pct + '% of goal') + '</span><span class="gt">Goal ' + tgtHtml + '</span></div></div>';
-    }).join('');
-    box.querySelectorAll('button.tgt').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var key = this.dataset.g, inp = document.createElement('input');
-        inp.className = 'tgt-in'; inp.inputMode = 'decimal'; inp.value = F.goals[key];
-        this.replaceWith(inp); inp.focus(); inp.select();
-        var done = false;
-        function commit(save) {
-          if (done) return; done = true;
-          var v = parseFloat(String(inp.value).replace(/[^0-9.]/g, ''));
-          if (save && !isNaN(v) && v !== +F.goals[key]) { F.goals[key] = v; send({ action: 'goals', goals: F.goals }); }
-          renderGoals();
+    box.innerHTML = F.goalDefinitions.map(function (g) {
+      var manual = !g.source || g.source === 'manual', saved = drafts[g.key] || F.values[g.key] || {};
+      var current = goalCurrent(g);
+      var comparison = '';
+      if (!manual && F.prev) {
+        var previous = g.source === 'revenue' ? totalRev(F.prev) : F.prev[g.source];
+        if (current != null && previous != null) {
+          var diff = +current - +previous;
+          comparison = '<div class="delta ' + (diff > 0 ? 'up' : diff < 0 ? 'down' : '') + '">' +
+            (diff > 0 ? '+' : diff < 0 ? '−' : '') + valueFormat(g.type, Math.abs(diff)) + ' vs ' + esc(F.prev.name) + '</div>';
         }
-        inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') commit(true); if (e.key === 'Escape') commit(false); });
-        inp.addEventListener('blur', function () { commit(true); });
-      });
-    });
+      }
+      var numeric = g.type === 'money' || g.type === 'number';
+      var has = current != null && current !== '', target = g.target, pct = 0;
+      if (numeric && has && target !== '' && +target > 0) pct = Math.min(100, Math.round(+current / +target * 100));
+      var progress = goalProgress(g), complete = progress.status === 'cp';
+      pct = displayedPct(progress);
+      return '<div class="kpi goal' + (complete ? ' done' : '') + '" data-goal="' + esc(g.key) + '"><div class="kpi-l">' + I(g.type === 'money' ? 'dollar' : 'target') + esc(g.title) + '</div>' +
+        (g.description ? '<p class="goal-description">' + esc(g.description) + '</p>' : '') +
+        '<div class="goal-result">' + (g.type === 'check' ? esc(LABEL[progress.status]) : valueFormat(g.type, current)) + '</div>' +
+        comparison + (target !== '' && target != null ? '<div class="goal-target">Target: ' + valueFormat(g.type, target) + '</div>' : '') +
+        (numeric && target !== '' ? '<div class="gbar"><i style="width:' + pct + '%"></i></div>' : '') +
+        '<div class="goal-auto-status">' + LABEL[progress.status] + ' · ' + pct + '%</div>' +
+        (manual ? (F.canRespond ? resultForm(g, 'goal') : '<span class="spill">' + esc(LABEL[progress.status]) + '</span>') : '<p class="hint">From monthly numbers' + (complete ? ' · Goal hit' : '') + '</p>') + '</div>';
+    }).join('') || '<div class="empty">No destination goals yet. An admin can add them in Edit destinations &amp; path.</div>';
+    bindResults(box);
   }
 
   /* ---------- this month's entry ---------- */
@@ -182,58 +297,54 @@
     });
   }
 
-  var noteSavers = {};
-  function renderPhases(focusKey) {
-    var box = document.getElementById('phases');
-    var ci = currentIdx();
-    box.className = F.canEdit ? 'editable' : '';
+  var noteSavers = {}, expandedPhases = {};
+  function renderTasks(nodes) {
+    return '<ul class="task-tree">' + nodes.map(function (m) {
+      var children = m.children || [], leaf = !children.length, p = nodeProgress(m), pct = displayedPct(p), saved = drafts[m.key] || F.values[m.key] || {};
+      return '<li class="task-node st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><div class="task-heading"><h4>' + esc(m.t) + '</h4><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span></div>' +
+        '<div class="task-progress-track"><i class="task-progress-fill" style="width:' + pct + '%"></i></div>' +
+        (m.description ? '<p class="task-description">' + esc(m.description) + '</p>' : '') +
+        (m.target !== '' && m.target != null ? '<div class="goal-target">Target: ' + valueFormat(m.type || 'check', m.target) + '</div>' : '') +
+        ((m.type === 'number' || m.type === 'money') && !(+m.target > 0) ? '<p class="hint">An admin can add a positive target to measure completion.</p>' : '') +
+        (leaf ? (F.canRespond ? resultForm(m, 'task') : (m.type && m.type !== 'check' ? '<div class="goal-result">' + valueFormat(m.type, saved.value) + '</div>' : '')) : renderTasks(children)) + '</li>';
+    }).join('') + '</ul>';
+  }
+  function renderPhases() {
+    var box = document.getElementById('phases'), ci = currentIdx();
     box.innerHTML = F.phases.map(function (p, pi) {
-      var s = phaseStatus(p), pct = phasePct(p), isCur = pi === ci;
-      var cls = 'phase ' + (s === 'cp' ? 'complete' : s === 'ip' ? 'inprogress' : '') + (isCur ? ' current' : '');
-      var badge = s === 'cp' ? '<span class="badge cp">Complete</span>' : s === 'ip' ? '<span class="badge ip">In progress</span>' : '<span class="badge ns">Not started</span>';
-      var nextKey = isCur ? (p.miles.find(function (m) { var x = st(m.key); return x === 'todo' || x === 'ip'; }) || {}).key : null;
-      var c = counts(p);
-      var miles = p.miles.map(function (m) {
-        var ms = st(m.key);
-        return '<li class="st-' + ms + (m.key === nextKey ? ' next' : '') + '" data-k="' + esc(m.key) + '"' + (F.canEdit ? ' role="button" tabindex="0" aria-label="' + esc(m.t) + ': ' + LABEL[ms] + '"' : '') + '>' +
-          '<span class="sdot">' + (ms === 'cp' ? I('check') : '') + '</span><span class="mt">' + esc(m.t) + '</span>' +
-          (m.key === nextKey ? '<span class="nextup">Next up</span>' : '') +
-          (m.unlock ? '<span class="unlock">' + esc(m.unlock) + '</span>' : '') + '<span class="spill">' + LABEL[ms] + '</span></li>';
-      }).join('');
-      var note = F.notes[p.key] || '';
-      var notes = F.canEdit
-        ? '<textarea data-p="' + esc(p.key) + '" rows="2" placeholder="What we worked on, blockers, next step…">' + esc(note) + '</textarea>'
+      var progress = aggregate(p.miles), status = progress.status, pct = displayedPct(progress), note = F.notes[p.key] || '';
+      var notes = F.canEdit ? '<textarea data-p="' + esc(p.key) + '" rows="2" placeholder="What we worked on, blockers, next step…">' + esc(note) + '</textarea>'
         : '<div class="ro">' + (note ? esc(note) : '<span class="muted">No notes this month.</span>') + '</div>';
-      return '<div class="' + cls + '" id="ph-' + esc(p.key) + '"><span class="edge"></span>' +
-        '<div class="ph-top"><div class="mid"><div class="num">' + esc(p.num) + ' · ' + c.done + '/' + c.active + ' steps</div><h3>' + esc(p.name) + '</h3></div>' + badge + (isCur ? '<span class="badge cur">Current</span>' : '') + '</div>' +
-        '<div class="ph-prog"><div class="track"><i style="width:' + pct + '%"></i></div><span class="p">' + pct + '%</span></div>' +
-        '<ul class="mile">' + miles + '</ul>' +
-        '<div class="notes"><label>' + I('edit') + 'Notes · ' + esc(F.monthLabel) + '</label>' + notes + '</div></div>';
-    }).join('');
-
-    if (!F.canEdit) return;
-    box.querySelectorAll('.mile li').forEach(function (li) {
-      function cycle(dir) {
-        var k = li.dataset.k, i = ORDER.indexOf(st(k)), next = ORDER[(i + (dir || 1) + ORDER.length) % ORDER.length];
-        F.statuses[k] = next; F.inheritedFrom = null;
-        send({ action: 'status', key: k, status: next });
-        renderPhases(k); renderStepper(); renderRing(); renderInherit();
-        if (next === 'cp' && phaseStatus(F.phases.find(function (p) { return p.miles.some(function (m) { return m.key === k; }); })) === 'cp') U.toast('Phase complete — nice work!');
-      }
-      li.addEventListener('click', function () { cycle(1); });
-      li.addEventListener('contextmenu', function (e) { e.preventDefault(); cycle(-1); });
-      li.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cycle(1); }
-        if (e.key === 'Backspace') { e.preventDefault(); cycle(-1); }
-      });
-    });
+      return '<section class="phase ' + (status === 'cp' ? 'complete' : status === 'ip' ? 'inprogress' : '') + (pi === ci ? ' current' : '') + '" id="ph-' + esc(p.key) + '"><span class="edge"></span>' +
+        '<div class="ph-top"><div class="mid"><div class="num">' + esc(p.num) + '</div><h3>' + esc(p.name) + '</h3></div><span class="badge phase-status ' + status + '">' + LABEL[status] + '</span></div>' +
+        '<div class="ph-prog"><div class="track"><i style="width:' + pct + '%"></i></div><span class="p phase-percent">' + pct + '%</span></div>' +
+        '<div class="task-summary-rail" aria-label="' + esc(p.name) + ' tasks">' + summarySteps(p.miles) + '</div>' +
+        '<button class="btn sm ghost phase-expand" type="button" data-phase="' + esc(p.key) + '" aria-expanded="' + !!expandedPhases[p.key] + '" aria-controls="phase-details-' + esc(p.key) + '">' + (expandedPhases[p.key] ? 'Collapse details' : 'Expand details') + I('chevron') + '</button>' +
+        '<div class="phase-details" id="phase-details-' + esc(p.key) + '"' + (expandedPhases[p.key] ? '' : ' hidden') + '>' +
+        (p.miles.length ? renderTasks(p.miles) : '<p class="muted">No tasks yet. An admin can add tasks to this phase.</p>') +
+        '<div class="notes"><label>' + I('edit') + 'Notes · ' + esc(F.monthLabel) + '</label>' + notes + '</div></div></section>';
+    }).join('') || '<div class="empty">No path phases yet. An admin can add them in Edit destinations &amp; path.</div>';
+    bindResults(box);
     box.querySelectorAll('textarea[data-p]').forEach(function (ta) {
       var key = ta.dataset.p;
-      if (!noteSavers[key]) noteSavers[key] = U.debounce(function () { send({ action: 'note', phase: key, notes: F.notes[key] || '' }); }, 800);
-      autosize(ta);
+      if (!noteSavers[key]) noteSavers[key] = U.debounce(function () { send({ action:'note', phase:key, notes:F.notes[key] || '' }); }, 800);
       ta.addEventListener('input', function () { F.notes[key] = this.value; autosize(this); noteSavers[key](); });
     });
-    if (focusKey) { var again = box.querySelector('li[data-k="' + focusKey + '"]'); if (again) again.focus({ preventScroll: true }); }
+    box.onclick = function (event) {
+      var toggle = event.target.closest('.phase-expand'), step = event.target.closest('[data-task-to]');
+      if (toggle) {
+        var key = toggle.dataset.phase; expandedPhases[key] = !expandedPhases[key];
+        document.getElementById('phase-details-' + key).hidden = !expandedPhases[key];
+        toggle.setAttribute('aria-expanded', String(expandedPhases[key]));
+        toggle.innerHTML = (expandedPhases[key] ? 'Collapse details' : 'Expand details') + I('chevron');
+        if (expandedPhases[key]) document.getElementById('phase-details-' + key).querySelectorAll('textarea[data-p]').forEach(autosize);
+      } else if (step) {
+        var phase = step.closest('.phase'), button = phase.querySelector('.phase-expand');
+        if (button.getAttribute('aria-expanded') !== 'true') button.click();
+        var task = document.getElementById('task-' + step.dataset.taskTo);
+        if (task) { task.scrollIntoView({behavior:'smooth', block:'center'}); var input = task.querySelector('input, textarea'); if (input) input.focus({preventScroll:true}); }
+      }
+    };
   }
   function autosize(ta) { ta.style.height = 'auto'; ta.style.height = Math.min(320, ta.scrollHeight + 2) + 'px'; }
 

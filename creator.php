@@ -15,6 +15,8 @@ if (!$creator || !can_view_creator($u, $cid)) {
 $month   = valid_month($_GET['m'] ?? '') ?? date('Y-m');
 $canEdit = can_edit_creator($u, $cid);
 $isSelf  = (int)$u['id'] === $cid;
+$plan = creator_plan($cid);
+$meetingError = meeting_post($u, $cid, $month);
 
 [$statuses, $inheritedFrom] = get_statuses($cid, $month);
 $notes = [];
@@ -43,11 +45,13 @@ $data = [
     'canEdit'       => $canEdit,
     'me'            => ['id' => (int)$u['id'], 'role' => $u['role'], 'name' => $u['name']],
     'isSelf'        => $isSelf,
-    'phases'        => phases(),
+    'phases'        => array_map(fn($p, $i) => array_replace($p, ['num' => 'PHASE ' . str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT)]), $plan['phases'], array_keys($plan['phases'])),
     'statuses'      => (object)$statuses,
     'inheritedFrom' => $inheritedFrom ? month_label($inheritedFrom) : null,
     'notes'         => (object)$notes,
-    'goals'         => get_goals($cid),
+    'goalDefinitions' => $plan['goals'],
+    'values' => (object)tracker_values($cid, $month),
+    'canRespond' => $canEdit || is_staff($u),
     'entry'         => entry_js($entryRow),
     'entryMeta'     => $entryMeta,
     'prev'          => $prevRow ? entry_js($prevRow) + ['label' => month_label($prevRow['month']), 'name' => month_name($prevRow['month'])] : null,
@@ -88,16 +92,22 @@ page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
     <a href="#path">Path</a>
     <a href="#feedback">Feedback<span class="cnt" id="fbcount"></span></a>
     <a href="#trends">Trends</a>
+    <a href="#meetings">Meetings</a>
     <span class="savestate" id="savestate" aria-live="polite"></span>
   </div>
 </nav>
 
 <?php if (!$canEdit): ?>
-  <div class="note-bar"><?= icon('eye') ?><span>View only — <?= $u['role'] === 'admin' ? 'admins can view creator data and leave feedback.' : 'you can\'t edit this tracker.' ?></span></div>
+  <div class="note-bar"><?= icon('eye') ?><span>View only — <?= $u['role'] === 'admin' ? 'monthly numbers and notes are view-only. You can manage the plan, update task results, and leave feedback.' : 'you can\'t edit this tracker.' ?></span></div>
 <?php endif; ?>
 
+<?php if (is_staff($u)): ?>
+<div class="plan-toolbar"><a class="btn primary" href="planner.php?id=<?= $cid ?>&m=<?= e($month) ?>"><?= icon('edit') ?>Edit destinations &amp; path</a></div>
+<?php endif; ?>
+<section class="sec" id="social"><div class="section-h"><h2>Social channels</h2><a class="btn sm" href="social.php?id=<?= $cid ?>">Manage channels</a></div>
+<div class="social-grid"><?php $channels = social_accounts($cid); foreach ($channels as $channel) social_card($channel); if (!$channels): ?><div class="empty small">Link your public channels to track followers and subscribers automatically.</div><?php endif; ?></div></section>
 <section id="overview" class="sec">
-  <div class="section-h"><h2>The Destination</h2><span>This month vs. goals set at intake<?= $canEdit ? ' — click a target to change it' : '' ?>.</span></div>
+  <div class="section-h"><h2>The Destination</h2><span>Your goals and results for <?= e(month_label($month)) ?>.</span></div>
   <div class="kpis tiles" id="goals"></div>
 </section>
 
@@ -107,7 +117,7 @@ page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
 </section>
 
 <section id="path" class="sec">
-  <div class="section-h"><h2>The Path</h2><span><?= $canEdit ? 'Click a step to cycle: To do → In progress → Complete → Skipped.' : 'Step status for this month.' ?></span></div>
+  <div class="section-h"><h2>The Path</h2><span><?= $canEdit ? 'Enter results to update progress automatically. Expand a phase to see details.' : 'Step status for this month.' ?></span></div>
   <div class="note-bar info" id="inherit" hidden></div>
   <div class="stepper" id="stepper"></div>
   <div id="phases"></div>
@@ -127,5 +137,7 @@ page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
   </div>
 </section>
 
+<?php meeting_section($u, $cid, $month, $meetingError); ?>
+
 <script>window.FL = <?= js_json($data) ?>;</script>
-<?php page_footer(['tracker.js']); ?>
+<?php page_footer(['tracker.js', 'social.js']); ?>
