@@ -35,6 +35,7 @@ function page_header(string $title, string $active = '', bool $bare = false): vo
       <?php if ($u['role'] === 'superadmin'): ?>
         <a href="users.php" class="<?= $active === 'users' ? 'on' : '' ?>"><?= icon('users') ?><span>Users</span></a>
       <?php endif; ?>
+      <?php if (assistant_local()): ?><a href="assistant.php" class="<?= $active === 'assistant' ? 'on' : '' ?>"><?= icon('chat') ?><span>Assistant</span></a><?php endif; ?>
     </nav>
     <div class="me">
       <a class="me-link <?= $active === 'account' ? 'on' : '' ?>" href="account.php" title="Your account">

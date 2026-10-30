@@ -1,0 +1,10 @@
+(function () {
+  var form=document.getElementById('assistant-form'), question=document.getElementById('assistant-question'), messages=document.getElementById('assistant-messages'), status=document.getElementById('assistant-status'), button=document.getElementById('assistant-send'), creator=document.getElementById('assistant-creator'), month=document.getElementById('assistant-month'), clear=document.getElementById('assistant-clear'), history=[];
+  function reset(){history=[];messages.replaceChildren();status.textContent='';}
+  creator.addEventListener('change',reset);month.addEventListener('change',reset);clear.addEventListener('click',reset);
+  function append(role,text){var item=document.createElement('div'), label=document.createElement('b'), body=document.createElement('p');item.className='assistant-message '+role;label.textContent=role==='user'?'You':'Grok';body.textContent=text;item.append(label,body);messages.append(item);return item;}
+  form.addEventListener('submit',async function(event){event.preventDefault();var text=question.value.trim();if(!text)return;button.disabled=creator.disabled=month.disabled=clear.disabled=true;status.textContent='Reading tracker data…';append('user',text);
+    try {var response=await fetch('assistant-api.php',{method:'POST',headers:{'Content-Type':'application/json','X-CSRF':document.querySelector('meta[name=csrf]').content},body:JSON.stringify({question:text,cid:creator.value,month:month.value,history:history.slice(-6)})});var data=await response.json();if(!data.ok)throw Error(data.error||'Unable to answer.');var item=append('assistant',data.answer),link=document.createElement('a');link.href='creator.php?id='+encodeURIComponent(creator.value)+'&m='+encodeURIComponent(month.value);link.textContent='Open source tracker';item.append(link);history.push({role:'user',content:text},{role:'assistant',content:data.answer});question.value='';status.textContent='Data read at '+data.captured_at;
+    }catch(error){status.textContent=error.message;}finally{button.disabled=creator.disabled=month.disabled=clear.disabled=false;question.focus();}
+  });
+})();

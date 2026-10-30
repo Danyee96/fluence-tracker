@@ -141,3 +141,19 @@ X is available in all social-platform selectors. Enter `@handle`, `https://x.com
 Dashboard cards and list rows open the creator tracker directly. Admins and superadmins can use **Edit creator** beside the back button to update basic information and repeatable social profiles, with a link to edit destinations and the path. Only superadmins can change login activation.
 
 **Log in as creator** opens an active creator account without changing its password. A banner provides **Return to admin account**, preserving the selected month. Switching requires a CSRF-protected POST, rotates the session and CSRF token, and records the original admin in activity logs. Creator permissions apply during the session; staff accounts cannot be impersonated. Each request revalidates the original admin account, and a removed, disabled, or promoted creator ends the creator session.
+
+## Local Grok assistant preview
+
+`assistant.php` provides read-only questions about one selected creator and month, with the plan, current results, monthly notes, up to 12 monthly entries, 10 latest meetings and latest saved social snapshots. It does not inspect source files or offer cross-creator analysis. Creators are forced to their own ID server-side. Data is fetched on each question; the model receives no database credentials or arbitrary SQL tools. Responses are rendered as plain text. Conversations stay in browser memory and clear when the creator/month changes.
+
+In ignored `config.local.php`, add a top-level entry alongside the existing database/Apify settings:
+
+```php
+'grok' => [
+    'enabled' => true,
+    'api_key' => '', // Add your own xAI API key locally, or set XAI_API_KEY.
+    'model' => 'grok-4.7', // Use a Responses API model available to your account.
+],
+```
+
+Open `http://localhost:8000/assistant.php` after logging in. PHP cURL and paid API access are required for real answers. Tracker records are sent to xAI only when a question is submitted. Requests use the Responses API with `store=false`, a bounded context and output, a 55-second timeout and a five-second session throttle. This is a local preview: both page and endpoint require an enabled flag **and a loopback client IP**, ignoring Host/forwarded headers. Do not enable it behind a production reverse proxy that presents remote traffic as loopback. Deploying the source alone does not enable the feature; production config remains untouched. Test: `php tests/assistant.php`.
