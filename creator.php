@@ -63,7 +63,7 @@ $data = [
 page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
 ?>
 <?php if (is_staff($u)): ?>
-  <a class="back" href="dashboard.php?m=<?= e($month) ?>"><?= icon('back') ?>All creators</a>
+  <a class="back" href="dashboard.php?m=<?= e($month) ?>"><?= icon('back') ?>Back to all creators</a>
 <?php endif; ?>
 
 <section class="hero">
@@ -95,15 +95,15 @@ page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
     <a href="#meetings">Meetings</a>
     <span class="savestate" id="savestate" aria-live="polite"></span>
   </div>
+  <?php if (is_staff($u)): ?>
+  <a class="btn primary sm subnav-edit" href="planner.php?id=<?= $cid ?>&m=<?= e($month) ?>"><?= icon('edit') ?>Edit destinations &amp; path</a>
+  <?php endif; ?>
 </nav>
 
 <?php if (!$canEdit): ?>
   <div class="note-bar"><?= icon('eye') ?><span>View only — <?= $u['role'] === 'admin' ? 'monthly numbers and notes are view-only. You can manage the plan, update task results, and leave feedback.' : 'you can\'t edit this tracker.' ?></span></div>
 <?php endif; ?>
 
-<?php if (is_staff($u)): ?>
-<div class="plan-toolbar"><a class="btn primary" href="planner.php?id=<?= $cid ?>&m=<?= e($month) ?>"><?= icon('edit') ?>Edit destinations &amp; path</a></div>
-<?php endif; ?>
 <section class="sec" id="social"><div class="section-h"><h2>Social channels</h2><a class="btn sm" href="social.php?id=<?= $cid ?>">Manage channels</a></div>
 <div class="social-grid" id="social-channels" data-cid="<?= $cid ?>" data-manage="0"><?php $channels = social_accounts($cid); foreach ($channels as $channel) social_card($channel); if (!$channels): ?><div class="empty small">Link your public channels to track followers and subscribers automatically.</div><?php endif; ?></div></section>
 <section id="overview" class="sec">

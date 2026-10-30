@@ -488,7 +488,20 @@
 
   /* ---------- sticky sub-nav highlighting ---------- */
   function subnav() {
-    var links = [].slice.call(document.querySelectorAll('#subnav a'));
+    var nav = document.getElementById('subnav'), header = document.querySelector('.nav');
+    function measureToolbar() {
+      var headerHeight = header ? header.getBoundingClientRect().height : 0;
+      document.documentElement.style.setProperty('--tracker-header-height', headerHeight + 'px');
+      document.documentElement.style.scrollPaddingTop = (headerHeight + nav.getBoundingClientRect().height + 18) + 'px';
+    }
+    measureToolbar();
+    if ('ResizeObserver' in window) {
+      var toolbarObserver = new ResizeObserver(measureToolbar);
+      if (header) toolbarObserver.observe(header);
+      toolbarObserver.observe(nav);
+    }
+    window.addEventListener('resize', measureToolbar);
+    var links = [].slice.call(document.querySelectorAll('#subnav a[href^="#"]'));
     var secs = links.map(function (a) { return document.querySelector(a.getAttribute('href')); });
     links.forEach(function (a) {
       a.addEventListener('click', function (e) { e.preventDefault(); document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth', block: 'start' }); });
