@@ -61,6 +61,9 @@ function page_footer(array $scripts = []): void
     $v = FL_VERSION;
     ?>
 </div></main>
+<?php if (assistant_local() && current_user() && basename($_SERVER['SCRIPT_NAME'] ?? '') !== 'assistant.php'): ?>
+<a class="assistant-launcher" href="assistant.php" aria-label="Open Grok assistant" title="Ask Grok"><?= icon('chat') ?><span>Ask Grok</span></a>
+<?php endif; ?>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <script>window.FL_ICONS = <?= js_json(icon_paths()) ?>;</script>
 <script src="assets/app.js?v=<?= $v ?>"></script>

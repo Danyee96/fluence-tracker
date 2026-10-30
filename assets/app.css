@@ -759,3 +759,9 @@ li.st-sk .spill{color:var(--muted2);background:transparent;border-color:var(--li
 .assistant-panel input,.assistant-panel select,.assistant-panel textarea{width:100%;background:var(--bg2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;font:inherit;min-width:0}
 .assistant-messages{display:grid;gap:10px;margin:18px 0;max-height:55vh;overflow:auto}
 .assistant-message{padding:12px;border:1px solid var(--line);border-radius:10px;overflow-wrap:anywhere}.assistant-message p{white-space:pre-wrap;margin:6px 0;font-size:14px;line-height:1.6}.assistant-message.user{background:rgba(34,211,238,.05)}.assistant-message>b{font-size:12px;color:var(--cya)}
+
+.assistant-launcher{position:fixed;right:max(22px,env(safe-area-inset-right));bottom:calc(22px + env(safe-area-inset-bottom));z-index:80;display:flex;align-items:center;justify-content:center;gap:9px;min-width:56px;height:56px;padding:0 18px;background:var(--cya);color:#06222a;border:1px solid rgba(255,255,255,.2);border-radius:999px;box-shadow:0 6px 24px rgba(34,211,238,.25);font-size:13px;font-weight:700;text-decoration:none;transition:transform .15s,box-shadow .15s}
+.assistant-launcher .ic{width:24px;height:24px}.assistant-launcher:hover{transform:translateY(-2px);color:#06222a;box-shadow:0 8px 28px rgba(34,211,238,.4)}
+.assistant-launcher:focus-visible{outline:3px solid var(--fg);outline-offset:4px}
+@media(max-width:560px){.assistant-launcher{right:16px;bottom:calc(16px + env(safe-area-inset-bottom));padding:0;width:52px;height:52px;min-width:52px}.assistant-launcher span{display:none}}
+@media(prefers-reduced-motion:reduce){.assistant-launcher{transition:none}}
