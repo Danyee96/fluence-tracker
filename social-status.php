@@ -14,4 +14,4 @@ foreach (social_accounts($cid) as $account) {
     ob_start(); social_card($account, true); $html = ob_get_clean();
     $items[] = ['id'=>(int)$account['id'], 'pending'=>(bool)($account['is_active'] && $account['run_id'] && $account['sync_status'] === 'syncing'), 'html'=>$html];
 }
-json_out(['ok'=>true, 'accounts'=>$items]);
+json_out(['ok'=>true, 'accounts'=>$items, 'socials'=>social_dashboard_data($cid)]);

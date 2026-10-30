@@ -169,13 +169,13 @@ function social_parse(array $account, array $rows): array
 
 function social_claim(int $id): ?array
 {
-    $changed = q('UPDATE social_accounts SET locked_until=? WHERE id=? AND is_active=1 AND (locked_until IS NULL OR locked_until<?)', [social_time(90), $id, now()]);
+    $changed = q('UPDATE social_accounts SET locked_until=? WHERE id=? AND is_active=1 AND sync_status<>\'archived\' AND creator_id IN (SELECT id FROM users WHERE is_active=1 AND role=\'creator\') AND (locked_until IS NULL OR locked_until<?)', [social_time(90), $id, now()]);
     return $changed->rowCount() ? (q('SELECT * FROM social_accounts WHERE id=?', [$id])->fetch() ?: null) : null;
 }
 
 function social_fail(int $id, string $message, bool $clearRun = true): void
 {
-    q('UPDATE social_accounts SET sync_status=?, last_error=?, next_sync=?, locked_until=NULL' . ($clearRun ? ', run_id=NULL' : '') . ' WHERE id=?',
+    q('UPDATE social_accounts SET sync_status=?, last_error=?, next_sync=?, locked_until=NULL' . ($clearRun ? ', run_id=NULL' : '') . ' WHERE id=? AND sync_status<>\'archived\'',
         ['error', mb_substr($message, 0, 255), social_time(3600), $id]);
 }
 
@@ -193,7 +193,7 @@ function social_start(int $id): void
             'timeout'=>180, 'maxItems'=>1, 'maxTotalChargeUsd'=>max(0.01, min(1, (float)(social_config()['max_run_cost_usd'] ?? 0.05))),
         ])['data'] ?? [];
         if (empty($data['id']) || !preg_match('/^[a-zA-Z0-9_-]+$/', $data['id'])) throw new RuntimeException('The provider did not return a valid sync job.');
-        q('UPDATE social_accounts SET run_id=?, sync_status=?, last_error=NULL WHERE id=?', [$data['id'], 'syncing', $id]);
+        q('UPDATE social_accounts SET run_id=?, sync_status=?, last_error=NULL WHERE id=? AND sync_status<>\'archived\'', [$data['id'], 'syncing', $id]);
     } catch (Throwable $e) {
         social_fail($id, $e instanceof RuntimeException && !$e instanceof PDOException ? $e->getMessage() : 'Could not start stats sync. Please retry later.');
     } finally { q('UPDATE social_accounts SET locked_until=NULL WHERE id=?', [$id]); }
@@ -217,11 +217,13 @@ function social_collect(int $id): void
         $dataset = (string)($run['defaultDatasetId'] ?? '');
         if (!preg_match('/^[a-zA-Z0-9_-]+$/', $dataset)) throw new RuntimeException('The provider did not return stats.');
         $rows = apify_request('GET', '/datasets/' . $dataset . '/items', null, ['clean'=>'true','limit'=>5]);
-        $stats = social_parse($account, $rows);
+        try { $stats = social_parse($account, $rows); }
+        catch (RuntimeException $e) { $terminal = true; throw $e; }
         db()->beginTransaction();
         $name = $stats['display_name']; unset($stats['display_name']);
+        $applied=q('UPDATE social_accounts SET display_name=?, last_synced=?, sync_status=?, run_id=NULL, last_error=NULL, next_sync=? WHERE id=? AND run_id=? AND sync_status<>\'archived\'', [$name, now(), 'ready', social_time(social_interval()), $id, $account['run_id']]);
+        if (!$applied->rowCount()) { db()->rollBack(); return; }
         upsert('social_snapshots', ['account_id','snapshot_date'], ['account_id'=>$id, 'snapshot_date'=>date('Y-m-d')] + $stats + ['captured_at'=>now()]);
-        q('UPDATE social_accounts SET display_name=?, last_synced=?, sync_status=?, run_id=NULL, last_error=NULL, next_sync=? WHERE id=?', [$name, now(), 'ready', social_time(social_interval()), $id]);
         db()->commit();
     } catch (Throwable $e) {
         if (db()->inTransaction()) db()->rollBack();
@@ -234,14 +236,14 @@ function social_tick(int $limit = 20): int
 {
     if (!social_enabled()) throw new RuntimeException('Apify token is not configured.');
     upsert('meta', ['k'], ['k'=>'social_cron_last_run', 'v'=>now()]);
-    $due = q('SELECT s.id, s.run_id FROM social_accounts s JOIN users u ON u.id=s.creator_id WHERE s.is_active=1 AND u.is_active=1 AND (s.next_sync IS NULL OR s.next_sync<=? OR (s.run_id IS NOT NULL AND s.sync_status=\'syncing\')) ORDER BY s.last_attempt ASC LIMIT ' . max(1, min(100, $limit)), [now()])->fetchAll();
+    $due = q('SELECT s.id, s.run_id FROM social_accounts s JOIN users u ON u.id=s.creator_id WHERE s.is_active=1 AND u.is_active=1 AND u.role=\'creator\' AND s.sync_status<>\'archived\' AND (s.next_sync IS NULL OR s.next_sync<=? OR (s.run_id IS NOT NULL AND s.sync_status=\'syncing\')) ORDER BY s.last_attempt ASC LIMIT ' . max(1, min(100, $limit)), [now()])->fetchAll();
     foreach ($due as $row) { if ($row['run_id']) social_collect((int)$row['id']); else social_start((int)$row['id']); }
     return count($due);
 }
 
 function social_accounts(int $cid): array
 {
-    $accounts = q('SELECT * FROM social_accounts WHERE creator_id=? ORDER BY platform, id', [$cid])->fetchAll();
+    $accounts = q("SELECT * FROM social_accounts WHERE creator_id=? AND sync_status<>'archived' ORDER BY platform, id", [$cid])->fetchAll();
     foreach ($accounts as &$account) {
         $account['latest'] = q('SELECT * FROM social_snapshots WHERE account_id=? ORDER BY snapshot_date DESC LIMIT 1', [$account['id']])->fetch() ?: null;
         $history = q('SELECT snapshot_date, followers FROM social_snapshots WHERE account_id=? AND snapshot_date>=? ORDER BY snapshot_date', [$account['id'], date('Y-m-d', strtotime('-30 days'))])->fetchAll();
@@ -249,4 +251,24 @@ function social_accounts(int $cid): array
         $account['growth'] = count($history) >= 2 ? (int)end($history)['followers'] - (int)$history[0]['followers'] : null;
     }
     return $accounts;
+}
+
+/** Public dashboard projection: no provider run IDs, credentials, or raw scraped records. */
+function social_dashboard_data(int $cid): array
+{
+    return array_map(function ($account) {
+        $stats=$account['latest'];
+        return [
+            'id'=>(int)$account['id'],'platform'=>$account['platform'],'label'=>SOCIAL_PLATFORMS[$account['platform']]['label'],
+            'metric'=>SOCIAL_PLATFORMS[$account['platform']]['metric'],'handle'=>$account['handle'],'url'=>$account['profile_url'],
+            'name'=>$account['display_name'],'active'=>(bool)$account['is_active'],'status'=>$account['sync_status'],
+            'lastSynced'=>$account['last_synced'],'updatedAgo'=>$account['last_synced']?time_ago($account['last_synced']):'Never',
+            'stale'=>!$account['last_synced'] || strtotime($account['last_synced']) < time()-social_interval(),
+            'error'=>$account['last_error'],'followers'=>$stats ? (int)$stats['followers'] : null,
+            'posts'=>$stats && $stats['posts']!==null ? (int)$stats['posts'] : null,
+            'likes'=>$stats && $stats['likes']!==null ? (int)$stats['likes'] : null,
+            'views'=>$stats && $stats['views']!==null ? (int)$stats['views'] : null,
+            'growth'=>$account['growth'],'history'=>array_map(fn($day)=>['date'=>$day['snapshot_date'],'followers'=>(int)$day['followers']],$account['history']),
+        ];
+    },social_accounts($cid));
 }

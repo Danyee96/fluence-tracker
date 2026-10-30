@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 define('FL', true);
-define('FL_VERSION', '3.5');
+define('FL_VERSION', '3.8');
 
 $cfgFile = __DIR__ . '/../config.php';
 if (!file_exists($cfgFile)) {
@@ -31,6 +31,7 @@ require __DIR__ . '/db.php';
 require __DIR__ . '/plans.php';
 require __DIR__ . '/social.php';
 require __DIR__ . '/meetings.php';
+require __DIR__ . '/creator-details.php';
 require __DIR__ . '/schema.php';
 require __DIR__ . '/helpers.php';
 require __DIR__ . '/auth.php';

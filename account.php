@@ -9,15 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $name = trim($_POST['name'] ?? '');
         if ($name === '') flash('Name can\'t be empty.', 'err');
         else {
-            if ($isC) {
-                q('UPDATE users SET name=?, handle=?, niche=?, channel_url=? WHERE id=?', [
-                    $name, clean_handle($_POST['handle'] ?? ''),
-                    ($n = trim((string)($_POST['niche'] ?? ''))) === '' ? null : mb_substr($n, 0, 120),
-                    clean_url($_POST['channel_url'] ?? ''), $u['id'],
-                ]);
-            } else {
-                q('UPDATE users SET name=? WHERE id=?', [$name, $u['id']]);
-            }
+            q('UPDATE users SET name=? WHERE id=?', [$name, $u['id']]);
             flash('Profile updated.');
         }
     } else {
@@ -55,11 +47,6 @@ page_header('Account', 'account');
     <form method="post" class="form">
       <?= csrf_field() ?><input type="hidden" name="act" value="profile">
       <label>Name<input name="name" value="<?= e($u['name']) ?>" required></label>
-      <?php if ($isC): ?>
-      <label>Handle<input name="handle" value="<?= e($u['handle']) ?>" placeholder="@channel"></label>
-      <label>Niche<input name="niche" value="<?= e($u['niche']) ?>" placeholder="e.g. Finance"></label>
-      <label>Channel link<input name="channel_url" value="<?= e($u['channel_url']) ?>" placeholder="youtube.com/@channel"></label>
-      <?php endif; ?>
       <div><button class="btn" type="submit"><?= icon('check') ?><span>Save profile</span></button></div>
     </form>
   </div>

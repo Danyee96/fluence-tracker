@@ -10,7 +10,7 @@ Plain PHP 8 + MySQL. No framework, no Composer, no Node build, so it runs on Hos
 ## What's inside (v3)
 - **Dashboard** — month KPIs (revenue vs last month, net sub growth, average roadmap progress, how many creators logged), search (`/`), filter chips by phase or "needs update", sort, grid/list view, 6-month sparklines, a quick panel per creator, a CSV export, and a recent-activity feed.
 - **Creator tracker** — progress ring, goal tiles with month-over-month deltas and click-to-edit targets, autosaving monthly numbers with last month's values as hints and a "Copy from last month" button, a phase stepper with a "Next up" step, per-month notes, a **feedback thread** (team ↔ creator), charts with hover tooltips, history, and activity.
-- **Users** — search, role filters, creator profile fields (handle, niche, channel, program start), and a copyable credentials card after you create a login or reset a password.
+- **Users** — search, role filters, creator goals and linked social profiles, and a copyable credentials card after you create a login or reset a password.
 - Keyboard: `/` jumps to search, `←` `→` switch month; on a step, `Enter` cycles forward and `Backspace` (or right-click) cycles back.
 
 ## Upgrading
@@ -110,3 +110,19 @@ The latest logged meeting date is included in dashboard/CSV **Last meeting**, al
 ## Destination goals on the dashboard
 
 Creator cards and list rows show current results against targets and progress bars for up to three Destination goals. Open a creator's dashboard overview to see every goal, including custom money, numeric, text, and checkbox goals. Goal progress is separate from Path progress and uses the selected month. Linked revenue/subscriber/income-stream goals use that month's numbers; custom goals use that month's saved results. Missing results remain blank rather than showing a fabricated zero. Percentages follow the same automatic status rules as the tracker. Tests: `php tests/dashboard-goals.php` (also supports local `FL_TEST_MYSQL=1`).
+
+## Creator setup from Users & Logins
+
+Super Admins can configure Destination goals and multiple social profiles while creating a creator login, or edit them later in the same user's expanded row. **Add goal** adds a title, type, target, and optional instructions. Existing linked goals retain their monthly-number sources and stable keys. **Add social profile** adds a platform selector plus public profile link/handle; rows can be edited or removed. A shortcut opens the full phase/nested-task editor after creation.
+
+The user, targets, and social-profile changes are saved atomically. Validation failures preserve entered fields. A complete-form marker prevents silently truncated large forms from removing saved rows. Plan revision and profile identity checks reject stale edits. Removing goals retains stored results. Removing/changing a profile archives the old identity and preserves its history; a new identity never inherits another profile's stats. Re-adding the same archived identity restores its own history. Public counts are not proof of account ownership.
+
+New profiles queue a first sync after the user is saved, without blocking account creation on provider network requests. The browser starts these jobs through an authenticated, CSRF-protected endpoint; the scheduled worker is the fallback. Normal login-management permissions are unchanged: Super Admins manage logins, while Admins can still edit plans and social channels from creator trackers.
+
+Creator dashboard cards and their overview now include **Social analytics · latest**. The overview shows every fetched metric (followers/subscribers, supported post/video counts, likes, channel views), growth, and sparklines. Actual capture times, stale/missing values, errors, and paused accounts are identified. **Refresh stats** requests an update subject to the existing hourly limit. The open overview reloads saved social data every minute (more frequently while a job is running). Public scraper counts may be rounded, hidden, or temporarily unavailable; unknown values remain blank, and failures do not replace a last successful count with zero. Hostinger still requires the Apify token and cron job configured on that server for unattended updates.
+
+Tests: `php tests/creator-details.php` or `FL_TEST_MYSQL=1 php tests/creator-details.php`.
+
+Creator setup forms now show basic login information, then **Social profiles**, then **Destination goals**. Legacy handle, niche, channel-link, and program-start inputs are removed from creation/edit forms and Account profile settings. Existing stored metadata is preserved when saving the simplified forms.
+
+Existing creator rows keep social-profile editing inline, but Destination goals are now a compact heading with an **Edit goals & path** link to that creator's plan editor. Initial goals remain editable in the new-user form. Saving basic info/social profiles preserves goals when their inline fields are absent.

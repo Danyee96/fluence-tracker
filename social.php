@@ -13,15 +13,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($action === 'add') {
             $platform = (string)($_POST['platform'] ?? '');
             $identity = social_identity($platform, (string)($_POST['handle'] ?? ''));
-            if (q('SELECT 1 FROM social_accounts WHERE creator_id=? AND platform=? AND handle=?', [$cid, $platform, $identity['handle']])->fetchColumn()) throw new InvalidArgumentException('This channel is already linked.');
-            q('INSERT INTO social_accounts (creator_id, platform, handle, profile_url, created_at) VALUES (?,?,?,?,?)', [$cid, $platform, $identity['handle'], $identity['profile_url'], now()]);
-            $id = (int)db()->lastInsertId();
+            $existing=q('SELECT * FROM social_accounts WHERE creator_id=? AND platform=? AND handle=?', [$cid, $platform, $identity['handle']])->fetch();
+            if ($existing && $existing['sync_status']!=='archived') throw new InvalidArgumentException('This channel is already linked.');
+            if ($existing) {
+                if ($existing['handle']!==$identity['handle']) throw new InvalidArgumentException('Check the exact capitalization of this channel ID.');
+                $id=(int)$existing['id'];
+                q("UPDATE social_accounts SET is_active=1,sync_status='pending',next_sync=?,run_id=NULL WHERE id=?",[now(),$id]);
+            } else {
+                q('INSERT INTO social_accounts (creator_id, platform, handle, profile_url, created_at) VALUES (?,?,?,?,?)', [$cid, $platform, $identity['handle'], $identity['profile_url'], now()]);
+                $id = (int)db()->lastInsertId();
+            }
             if (social_enabled()) social_start($id);
             log_activity($cid, (int)$u['id'], 'social', null, 'Linked ' . SOCIAL_PLATFORMS[$platform]['label'] . ' @' . $identity['handle']);
             flash('Channel linked. Its first stats sync is queued.');
         } else {
             $id = (int)($_POST['account_id'] ?? 0);
-            $account = q('SELECT * FROM social_accounts WHERE id=? AND creator_id=?', [$id, $cid])->fetch();
+            $account = q("SELECT * FROM social_accounts WHERE id=? AND creator_id=? AND sync_status<>'archived'", [$id, $cid])->fetch();
             if (!$account) throw new InvalidArgumentException('Channel not found.');
             if ($action === 'refresh') {
                 if (!social_enabled()) throw new InvalidArgumentException('Stats syncing is not configured yet. Ask your admin to connect Apify.');

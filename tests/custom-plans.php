@@ -15,7 +15,7 @@ if (getenv('FL_TEST_MYSQL') === '1') {
     $CONFIG['db'] = ['driver'=>'mysql', 'host'=>$host, 'port'=>$port, 'name'=>$database, 'user'=>$user, 'pass'=>$pass];
 }
 
-foreach (['db', 'plans', 'social', 'meetings', 'schema', 'helpers', 'auth', 'progress'] as $file) require __DIR__ . '/../inc/' . $file . '.php';
+foreach (['db', 'plans', 'social', 'meetings', 'creator-details', 'schema', 'helpers', 'auth', 'progress'] as $file) require __DIR__ . '/../inc/' . $file . '.php';
 function check(bool $condition, string $message): void { if (!$condition) throw new RuntimeException($message); }
 migrate(); migrate();
 foreach (['One', 'Two'] as $name) q("INSERT INTO users (name,email,password_hash,role,created_at) VALUES (?,?,?,'creator',?)", [$name, $name . '@test.local', 'unused', now()]);

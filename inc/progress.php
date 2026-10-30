@@ -268,6 +268,7 @@ function dashboard_data(string $month): array
             'hue'          => hue($cid),
             'active'       => $active,
             'phases'       => $prog['phases'],
+            'socials'      => social_dashboard_data($cid),
             'goals'        => creator_goal_progress($cid, $month, $entry, $values),
             'overall'      => $prog['overall'],
             'current'      => $prog['current'],

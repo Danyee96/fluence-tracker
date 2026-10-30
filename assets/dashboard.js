@@ -102,6 +102,27 @@
       (compact && goals.length > shown.length ? '<span class="dash-goals-more">+' + (goals.length - shown.length) + ' more · Open overview to see all</span>' : '') + '</div>';
   }
 
+  function socialsHtml(cr, compact) {
+    var accounts = cr.socials || [], shown = compact ? accounts.slice(0,4) : accounts;
+    return '<div class="dash-socials' + (compact ? ' compact' : '') + '"><div class="dash-goals-heading"><span>Social analytics · latest</span><small>' + accounts.length + ' profile' + (accounts.length === 1 ? '' : 's') + '</small></div>' +
+      (shown.length ? shown.map(function (account) {
+        var status = !account.active ? 'Paused' : account.status === 'syncing' ? 'Updating…' : account.error ? 'Refresh failed' : account.stale ? 'Outdated / awaiting sync' : 'Updated ' + account.updatedAgo;
+        var identity = compact ? '<span>' + esc(account.label) + ' · @' + esc(account.handle) + '</span>' : '<a href="' + esc(account.url) + '" target="_blank" rel="noopener noreferrer">' + esc(account.label) + ' · @' + esc(account.handle) + I('external') + '</a>';
+        var metrics = '<span><b>' + U.num(account.followers) + '</b> ' + esc(account.metric) + '</span>';
+        if (!compact) ['posts','likes','views'].forEach(function (key) {
+          if (account[key] != null) metrics += '<span><b>' + U.num(account[key]) + '</b> ' + ({posts:'Posts / videos', likes:'Total likes', views:'Channel views'})[key] + '</span>';
+        });
+        return '<div class="dash-social' + (account.stale || account.error ? ' stale' : '') + '"><div class="dash-social-identity">' + identity + '</div><div class="dash-social-metrics">' + metrics + '</div>' +
+          '<span class="dash-social-updated" title="' + esc(account.lastSynced || 'No successful sync') + '">' + esc(status) + (account.lastSynced && (account.error || account.stale || account.status === 'syncing') ? ' · Last success ' + esc(account.updatedAgo) : '') + '</span>' +
+          (!compact && account.error ? '<p class="social-error">' + esc(account.error) + '</p>' : '') +
+          (!compact && account.growth != null ? '<p class="delta ' + (account.growth >= 0 ? 'up' : 'down') + '">' + U.growth(account.growth) + ' since ' + esc(account.history[0].date) + '</p>' : '') +
+          (!compact && account.history.length > 1 ? U.spark(account.history.map(function (day) { return day.followers; }), 260, 35) : '') +
+          (!compact && account.active ? '<button class="btn sm ghost" type="button" data-social-refresh="' + account.id + '" data-cid="' + cr.id + '">Refresh stats</button>' : '') + '</div>';
+      }).join('') : '<p class="hint">No social profiles linked.</p>') +
+      (compact && accounts.length > shown.length ? '<span class="dash-goals-more">+' + (accounts.length - shown.length) + ' more profiles in overview</span>' : '') +
+      (!compact ? '<p class="hint">Public counts reported by the provider; some platforms round or hide counts. Syncs run on the configured schedule. Refreshes are limited to once per hour per profile.</p>' : '') + '</div>';
+  }
+
   function renderGrid() {
     var f = FILTERS.find(function (x) { return x.k === state.filter; }) || FILTERS[0];
     var shown = sorted(list.filter(function (c) {
@@ -146,7 +167,7 @@
         '<div class="phrow"><span class="phpill ' + k + '">' + esc(cr.current.label) + '</span><span class="pct">' + cr.overall + '<small>%</small></span></div>' +
         segbar(cr) +
         '<div class="stats">' + statsHtml(cr) + '</div>' +
-        goalsHtml(cr, true) +
+        goalsHtml(cr, true) + socialsHtml(cr, true) +
         '<div class="card-spark"><span class="sl">Revenue · 6 mo</span>' + U.spark(cr.spark, 220, 34, '#22d3ee') + '</div>' +
         '<div class="card-foot"><span>' + I('clock') + (cr.updatedAgo ? 'Updated ' + esc(cr.updatedAgo) : 'No activity yet') + '</span>' +
         (cr.feedback ? '<span>' + I('chat') + cr.feedback + '</span>' : '') +
@@ -158,10 +179,11 @@
   }
 
   /* ---------- panel ---------- */
-  var lastFocus = null;
+  var lastFocus = null, selectedCreator = null, socialPollTimer = null;
   function openPanel(i) {
     var cr = list[i]; if (!cr) return;
     lastFocus = document.activeElement;
+    selectedCreator = cr;
     var cur = cr.current, ov = cr.overall;
     var steps = cr.phases.map(function (p, n) {
       var st = p.pct >= 100 ? 'd' : (p.pct > 0 || cur.k === p.key ? 'c' : 'g');
@@ -174,7 +196,7 @@
       '<div class="mmeta">' + (cur.k === 'done' ? 'Every phase complete' : cur.k === 'new' ? 'Roadmap not started yet' : cur.pct + '% through this phase') + ' · ' + esc(D.monthLabel) + '</div></div></div>' +
       '<div class="psteps">' + steps + '</div>' +
       '<div class="mstats">' + statsHtml(cr) + '</div>' +
-      goalsHtml(cr, false) +
+      goalsHtml(cr, false) + '<div id="dashboard-socials">' + socialsHtml(cr, false) + '</div>' +
       '<div class="m-charts"><div><span class="sl">Revenue · 6 mo</span>' + U.spark(cr.spark, 220, 46, '#6366f1') + '</div><div><span class="sl">Subscribers · 6 mo</span>' + U.spark(cr.sparkSubs, 220, 46, '#22d3ee') + '</div></div>' +
       '<div class="m-foot"><span class="muted">' + I('clock') + (cr.updatedAgo ? 'Updated ' + esc(cr.updatedAgo) : 'No activity yet') + (cr.feedback ? ' · ' + cr.feedback + ' feedback note' + (cr.feedback === 1 ? '' : 's') : '') + '</span>' +
       '<div class="m-actions">' + (D.role === 'superadmin' ? '<a class="btn sm" href="users.php#u' + cr.id + '">' + I('key') + '<span>Login</span></a>' : '') +
@@ -183,12 +205,51 @@
     modal.hidden = false; document.body.classList.add('locked');
     document.getElementById('mclose').addEventListener('click', closePanel);
     document.getElementById('mclose').focus();
+    if ((cr.socials || []).length) pollSocials(cr);
   }
   function closePanel() {
     var m = document.getElementById('modal'); if (m.hidden) return;
     m.hidden = true; document.body.classList.remove('locked');
+    clearTimeout(socialPollTimer);
+    selectedCreator = null;
     if (lastFocus) lastFocus.focus();
   }
+  function updateSocials(cr, accounts) {
+    cr.socials = accounts;
+    if (selectedCreator && selectedCreator.id === cr.id) {
+      var target = document.getElementById('dashboard-socials');
+      if (target) target.innerHTML = socialsHtml(cr, false);
+    }
+    renderGrid();
+  }
+  function pollSocials(cr) {
+    clearTimeout(socialPollTimer);
+    if (!selectedCreator || selectedCreator.id !== cr.id) return;
+    var delay = (cr.socials || []).some(function (a) { return a.status === 'syncing'; }) ? 10000 : 60000;
+    socialPollTimer = setTimeout(function () {
+      if (document.hidden) { pollSocials(cr); return; }
+      fetch('social-status.php', {method:'POST', credentials:'same-origin', headers:{'X-CSRF':document.querySelector('meta[name=csrf]').content}, body:new URLSearchParams({cid:cr.id})})
+        .then(function (r) { return r.json(); }).then(function (data) {
+          if (!data.ok) return;
+          updateSocials(cr, data.socials);
+          pollSocials(cr);
+        }).catch(function () { pollSocials(cr); });
+    }, delay);
+  }
+  document.getElementById('mcard').addEventListener('click', function (event) {
+    var button = event.target.closest('[data-social-refresh]');
+    if (!button || !selectedCreator) return;
+    var cr = selectedCreator;
+    button.disabled = true; button.textContent = 'Updating…';
+    fetch('social-refresh.php', {method:'POST', credentials:'same-origin', headers:{'X-CSRF':document.querySelector('meta[name=csrf]').content}, body:new URLSearchParams({cid:cr.id,account_id:button.dataset.socialRefresh})})
+      .then(function (r) { return r.json(); }).then(function (data) {
+        if (!data.ok) { U.toast(data.error || 'Could not refresh stats.', 'err'); return; }
+        updateSocials(cr,data.socials);
+        U.toast('Refresh checked. Each profile can start one update per hour.');
+        if (data.socials.some(function (a) { return a.status === 'syncing'; })) pollSocials(cr);
+      }).catch(function () { U.toast('Could not connect. Try again.', 'err'); })
+      .finally(function () { if (button.isConnected) { button.disabled = false; button.textContent = 'Refresh stats'; } });
+  });
   document.getElementById('modal').addEventListener('click', function (e) { if (e.target === this) closePanel(); });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
 
