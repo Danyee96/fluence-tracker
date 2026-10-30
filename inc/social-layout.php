@@ -5,7 +5,7 @@ function social_card(array $account, bool $manage = false): void
 {
     $platform = SOCIAL_PLATFORMS[$account['platform']];
     $stats = $account['latest'];
-    $status = !$account['is_active'] ? 'Paused' : match ($account['sync_status']) { 'syncing'=>'Updating…', 'ready'=>'Synced', 'error'=>'Needs attention', default=>'Awaiting first sync' };
+    $status = !social_enabled() ? 'Setup required' : (!$account['is_active'] ? 'Paused' : match ($account['sync_status']) { 'syncing'=>'Updating…', 'ready'=>'Synced', 'error'=>'Needs attention', default=>'Awaiting first sync' });
     ?>
     <article class="social-card panel" data-social-id="<?= (int)$account['id'] ?>">
       <div class="social-card-head"><span class="social-platform platform-<?= e($account['platform']) ?>"><?= e($platform['label']) ?></span><span class="social-status"><?= e($status) ?></span></div>
@@ -16,6 +16,8 @@ function social_card(array $account, bool $manage = false): void
       <?php if ($stats): ?><div class="social-secondary"><?php foreach (['posts'=>'Posts / videos','likes'=>'Total likes','views'=>'Channel views'] as $key=>$label): if ($stats[$key] === null) continue; ?><span><?= e($label) ?><b><?= number_format((int)$stats[$key]) ?></b></span><?php endforeach; ?></div><?php endif; ?>
       <?php if (count($account['history']) >= 2): ?><div class="social-spark" data-values="<?= e(json_encode(array_column($account['history'], 'followers'))) ?>"></div><?php endif; ?>
       <p class="hint">Last updated <?= $account['last_synced'] ? e(time_ago($account['last_synced'])) : 'never' ?><?= $account['last_synced'] && strtotime($account['last_synced']) < time()-social_interval()-3600 ? ' · Stats may be outdated' : '' ?></p>
+      <?php if (!social_enabled()): ?><p class="social-error">Apify is not configured on this server. Ask your admin to add its token in config.local.php.</p><?php endif; ?>
+      <?php if (!$manage && $account['is_active'] && social_enabled()): ?><button type="button" class="btn sm ghost" data-social-sync="<?= (int)$account['id'] ?>">Sync now</button><?php endif; ?>
       <?php if ($account['last_error']): ?><p class="social-error" role="status"><?= e($account['last_error']) ?></p><?php endif; ?>
       <?php if ($manage): ?><div class="social-controls">
       <?php foreach (['refresh'=>'Refresh stats', $account['is_active'] ? 'pause' : 'resume'=>$account['is_active'] ? 'Pause' : 'Resume', 'remove'=>'Remove'] as $action=>$label): ?>

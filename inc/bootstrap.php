@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 define('FL', true);
-define('FL_VERSION', '3.8');
+define('FL_VERSION', '3.9');
 
 $cfgFile = __DIR__ . '/../config.php';
 if (!file_exists($cfgFile)) {

@@ -105,7 +105,7 @@ page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
 <div class="plan-toolbar"><a class="btn primary" href="planner.php?id=<?= $cid ?>&m=<?= e($month) ?>"><?= icon('edit') ?>Edit destinations &amp; path</a></div>
 <?php endif; ?>
 <section class="sec" id="social"><div class="section-h"><h2>Social channels</h2><a class="btn sm" href="social.php?id=<?= $cid ?>">Manage channels</a></div>
-<div class="social-grid"><?php $channels = social_accounts($cid); foreach ($channels as $channel) social_card($channel); if (!$channels): ?><div class="empty small">Link your public channels to track followers and subscribers automatically.</div><?php endif; ?></div></section>
+<div class="social-grid" id="social-channels" data-cid="<?= $cid ?>" data-manage="0"><?php $channels = social_accounts($cid); foreach ($channels as $channel) social_card($channel); if (!$channels): ?><div class="empty small">Link your public channels to track followers and subscribers automatically.</div><?php endif; ?></div></section>
 <section id="overview" class="sec">
   <div class="section-h"><h2>The Destination</h2><span>Your goals and results for <?= e(month_label($month)) ?>.</span></div>
   <div class="kpis tiles" id="goals"></div>

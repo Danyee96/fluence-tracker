@@ -106,7 +106,7 @@
     var accounts = cr.socials || [], shown = compact ? accounts.slice(0,4) : accounts;
     return '<div class="dash-socials' + (compact ? ' compact' : '') + '"><div class="dash-goals-heading"><span>Social analytics · latest</span><small>' + accounts.length + ' profile' + (accounts.length === 1 ? '' : 's') + '</small></div>' +
       (shown.length ? shown.map(function (account) {
-        var status = !account.active ? 'Paused' : account.status === 'syncing' ? 'Updating…' : account.error ? 'Refresh failed' : account.stale ? 'Outdated / awaiting sync' : 'Updated ' + account.updatedAgo;
+        var status = account.configured === false ? 'Setup required' : !account.active ? 'Paused' : account.status === 'syncing' ? 'Updating…' : account.error ? 'Refresh failed' : account.stale ? 'Outdated / awaiting sync' : 'Updated ' + account.updatedAgo;
         var identity = compact ? '<span>' + esc(account.label) + ' · @' + esc(account.handle) + '</span>' : '<a href="' + esc(account.url) + '" target="_blank" rel="noopener noreferrer">' + esc(account.label) + ' · @' + esc(account.handle) + I('external') + '</a>';
         var metrics = '<span><b>' + U.num(account.followers) + '</b> ' + esc(account.metric) + '</span>';
         if (!compact) ['posts','likes','views'].forEach(function (key) {
@@ -205,7 +205,7 @@
     modal.hidden = false; document.body.classList.add('locked');
     document.getElementById('mclose').addEventListener('click', closePanel);
     document.getElementById('mclose').focus();
-    if ((cr.socials || []).length) pollSocials(cr);
+    if ((cr.socials || []).length) pollSocials(cr,true);
   }
   function closePanel() {
     var m = document.getElementById('modal'); if (m.hidden) return;
@@ -222,13 +222,13 @@
     }
     renderGrid();
   }
-  function pollSocials(cr) {
+  function pollSocials(cr, immediate) {
     clearTimeout(socialPollTimer);
     if (!selectedCreator || selectedCreator.id !== cr.id) return;
-    var delay = (cr.socials || []).some(function (a) { return a.status === 'syncing'; }) ? 10000 : 60000;
+    var delay = immediate ? 1000 : (cr.socials || []).some(function (a) { return a.status === 'syncing' || (a.active && a.followers == null && !a.error); }) ? 10000 : 60000;
     socialPollTimer = setTimeout(function () {
       if (document.hidden) { pollSocials(cr); return; }
-      fetch('social-status.php', {method:'POST', credentials:'same-origin', headers:{'X-CSRF':document.querySelector('meta[name=csrf]').content}, body:new URLSearchParams({cid:cr.id})})
+      fetch('social-status.php', {method:'POST', credentials:'same-origin', headers:{'X-CSRF':document.querySelector('meta[name=csrf]').content}, body:new URLSearchParams({cid:cr.id,sync_due:'1',manage:'0'})})
         .then(function (r) { return r.json(); }).then(function (data) {
           if (!data.ok) return;
           updateSocials(cr, data.socials);

@@ -126,3 +126,8 @@ Tests: `php tests/creator-details.php` or `FL_TEST_MYSQL=1 php tests/creator-det
 Creator setup forms now show basic login information, then **Social profiles**, then **Destination goals**. Legacy handle, niche, channel-link, and program-start inputs are removed from creation/edit forms and Account profile settings. Existing stored metadata is preserved when saving the simplified forms.
 
 Existing creator rows keep social-profile editing inline, but Destination goals are now a compact heading with an **Edit goals & path** link to that creator's plan editor. Initial goals remain editable in the new-user form. Saving basic info/social profiles preserves goals when their inline fields are absent.
+
+
+### Recovering missed first syncs
+
+The tracker, social-channel page, and open dashboard overview check active profiles for missed first jobs and due updates through the authenticated/CSRF-protected status endpoint (`sync_due=1`). Jobs are started in bounded batches, existing runs are collected without duplicating paid jobs, and the hourly limit/backoff still applies. Tracker cards poll automatically and include **Sync now**. A server without an Apify token displays **Setup required**, rather than an indefinite Awaiting first sync. The cron job remains required for unattended updates when nobody is viewing the app. Tests: `php tests/social-first-sync.php`.

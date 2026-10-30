@@ -236,7 +236,7 @@ function social_tick(int $limit = 20): int
 {
     if (!social_enabled()) throw new RuntimeException('Apify token is not configured.');
     upsert('meta', ['k'], ['k'=>'social_cron_last_run', 'v'=>now()]);
-    $due = q('SELECT s.id, s.run_id FROM social_accounts s JOIN users u ON u.id=s.creator_id WHERE s.is_active=1 AND u.is_active=1 AND u.role=\'creator\' AND s.sync_status<>\'archived\' AND (s.next_sync IS NULL OR s.next_sync<=? OR (s.run_id IS NOT NULL AND s.sync_status=\'syncing\')) ORDER BY s.last_attempt ASC LIMIT ' . max(1, min(100, $limit)), [now()])->fetchAll();
+    $due = q('SELECT s.id, s.run_id FROM social_accounts s JOIN users u ON u.id=s.creator_id WHERE s.is_active=1 AND u.is_active=1 AND u.role=\'creator\' AND s.sync_status<>\'archived\' AND (s.next_sync IS NULL OR s.next_sync<=? OR (s.sync_status=\'pending\' AND s.last_synced IS NULL) OR (s.run_id IS NOT NULL AND s.sync_status=\'syncing\')) ORDER BY s.last_attempt ASC LIMIT ' . max(1, min(100, $limit)), [now()])->fetchAll();
     foreach ($due as $row) { if ($row['run_id']) social_collect((int)$row['id']); else social_start((int)$row['id']); }
     return count($due);
 }
@@ -261,7 +261,7 @@ function social_dashboard_data(int $cid): array
         return [
             'id'=>(int)$account['id'],'platform'=>$account['platform'],'label'=>SOCIAL_PLATFORMS[$account['platform']]['label'],
             'metric'=>SOCIAL_PLATFORMS[$account['platform']]['metric'],'handle'=>$account['handle'],'url'=>$account['profile_url'],
-            'name'=>$account['display_name'],'active'=>(bool)$account['is_active'],'status'=>$account['sync_status'],
+            'configured'=>social_enabled(),'name'=>$account['display_name'],'active'=>(bool)$account['is_active'],'status'=>$account['sync_status'],
             'lastSynced'=>$account['last_synced'],'updatedAgo'=>$account['last_synced']?time_ago($account['last_synced']):'Never',
             'stale'=>!$account['last_synced'] || strtotime($account['last_synced']) < time()-social_interval(),
             'error'=>$account['last_error'],'followers'=>$stats ? (int)$stats['followers'] : null,
@@ -271,4 +271,28 @@ function social_dashboard_data(int $cid): array
             'growth'=>$account['growth'],'history'=>array_map(fn($day)=>['date'=>$day['snapshot_date'],'followers'=>(int)$day['followers']],$account['history']),
         ];
     },social_accounts($cid));
+}
+
+function social_needs_work(array $account): bool
+{
+    if (!$account['is_active'] || $account['sync_status']==='archived') return false;
+    if ($account['run_id'] && $account['sync_status']==='syncing') return true;
+    $due=(!$account['last_synced'] && $account['sync_status']==='pending') || !$account['next_sync'] || strtotime($account['next_sync'])<=time();
+    if (!$due) return false;
+    return (bool)$account['run_id'] || !$account['last_attempt'] || strtotime($account['last_attempt'])<=time()-3600;
+}
+
+/** Authorized page fallback for missed first jobs; cron still handles unattended updates. */
+function social_process_creator(int $cid, bool $startDue = false): void
+{
+    if (!social_enabled()) return;
+    $rows=q("SELECT s.* FROM social_accounts s JOIN users u ON u.id=s.creator_id WHERE s.creator_id=? AND s.is_active=1 AND s.sync_status<>'archived' AND u.role='creator' AND u.is_active=1 ORDER BY CASE WHEN s.run_id IS NOT NULL THEN 0 ELSE 1 END,s.last_attempt ASC",[$cid])->fetchAll();
+    $processed=0;$started=microtime(true);
+    foreach ($rows as $account) {
+        if (!social_needs_work($account)) continue;
+        if ($account['run_id']) social_collect((int)$account['id']);
+        elseif ($startDue) social_start((int)$account['id']);
+        else continue;
+        if (++$processed>=2 || microtime(true)-$started>12) break;
+    }
 }

@@ -70,7 +70,7 @@ page_header('Social channels · ' . $creator['name'], $u['role'] === 'creator' ?
  <p class="hint">Public profile stats only. Daily updates by default; each sync uses your team's Apify credits. Private profiles may not return stats.</p>
 </section>
 <section class="sec"><div class="section-h"><h2>Linked channels</h2><span>Automatic refresh every <?= (int)(social_interval()/3600) ?> hours.</span></div>
-<div class="social-grid" id="social-channels" data-cid="<?= $cid ?>">
+<div class="social-grid" id="social-channels" data-cid="<?= $cid ?>" data-manage="1">
 <?php foreach ($accounts as $account) social_card($account, true); ?>
 <?php if (!$accounts): ?><div class="empty">No channels linked yet. Add your first account above.</div><?php endif; ?>
 </div></section>
