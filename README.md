@@ -131,8 +131,3 @@ Existing creator rows keep social-profile editing inline, but Destination goals 
 ### Recovering missed first syncs
 
 The tracker, social-channel page, and open dashboard overview check active profiles for missed first jobs and due updates through the authenticated/CSRF-protected status endpoint (`sync_due=1`). Jobs are started in bounded batches, existing runs are collected without duplicating paid jobs, and the hourly limit/backoff still applies. Tracker cards poll automatically and include **Sync now**. A server without an Apify token displays **Setup required**, rather than an indefinite Awaiting first sync. The cron job remains required for unattended updates when nobody is viewing the app. Tests: `php tests/social-first-sync.php`.
-
-
-## Private configuration with the tracked loader
-
-`config.local.php` is now a committed loader. It reads the ignored `config.private.php` and optionally the `APIFY_API_TOKEN` environment variable. Private file values take precedence. Before deploying this change to an existing server, rename its current `config.local.php` to `config.private.php` so the loader preserves its settings. Keep the real token and database credentials out of Git. Do not copy a local SQLite override onto Hostinger; use the server's existing MySQL configuration. Both private configuration files are blocked from direct Apache access.
