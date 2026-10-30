@@ -5,6 +5,7 @@ const SOCIAL_PLATFORMS = [
     'instagram' => ['label' => 'Instagram', 'actor' => 'apify~instagram-profile-scraper', 'metric' => 'Followers'],
     'youtube' => ['label' => 'YouTube', 'actor' => 'streamers~youtube-channel-scraper', 'metric' => 'Subscribers'],
     'tiktok' => ['label' => 'TikTok', 'actor' => 'clockworks~tiktok-profile-scraper', 'metric' => 'Followers'],
+    'x' => ['label'=>'X (Twitter)', 'actor'=>'apidojo~twitter-user-scraper', 'metric'=>'Followers'],
     'facebook' => ['label' => 'Facebook', 'actor' => 'apify~facebook-pages-scraper', 'metric' => 'Followers'],
 ];
 
@@ -48,8 +49,8 @@ function social_identity(string $platform, string $raw): array
 {
     if (!isset(SOCIAL_PLATFORMS[$platform])) throw new InvalidArgumentException('Choose a supported platform.');
     $raw = trim($raw);
-    if (preg_match('~^(?:www\.)?(instagram\.com|youtube\.com|tiktok\.com|facebook\.com)/~i', $raw)) $raw = 'https://' . $raw;
-    $hosts = ['instagram'=>['instagram.com','www.instagram.com'], 'youtube'=>['youtube.com','www.youtube.com','m.youtube.com'], 'tiktok'=>['tiktok.com','www.tiktok.com'], 'facebook'=>['facebook.com','www.facebook.com','m.facebook.com']];
+    if (preg_match('~^(?:www\.)?(instagram\.com|youtube\.com|tiktok\.com|facebook\.com|x\.com|twitter\.com)/~i', $raw)) $raw = 'https://' . $raw;
+    $hosts = ['x'=>['x.com','www.x.com','twitter.com','www.twitter.com','mobile.twitter.com'], 'instagram'=>['instagram.com','www.instagram.com'], 'youtube'=>['youtube.com','www.youtube.com','m.youtube.com'], 'tiktok'=>['tiktok.com','www.tiktok.com'], 'facebook'=>['facebook.com','www.facebook.com','m.facebook.com']];
     $channelId = false;
     if (str_contains($raw, '://')) {
         $url = parse_url($raw);
@@ -70,12 +71,14 @@ function social_identity(string $platform, string $raw): array
     $handle = ltrim($raw, '@');
     if ($platform === 'youtube' && preg_match('/^UC[A-Za-z0-9_-]{22}$/', $handle)) $channelId = true;
     $valid = $platform === 'youtube' ? preg_match('/^[\p{L}\p{N}_.\-·]{3,100}$/u', $handle) : preg_match('/^[a-zA-Z0-9_.-]{1,100}$/', $handle);
-    $reserved = ['instagram'=>['p','reel','reels','stories','explore'], 'youtube'=>['watch','shorts','playlist','feed','results'], 'tiktok'=>['video','discover','explore'], 'facebook'=>['watch','reel','reels','groups','share','login','profile.php']];
+    if ($platform === 'x') $valid = preg_match('/^[a-zA-Z0-9_]{1,15}$/', $handle);
+    $reserved = ['x'=>['home','explore','search','i','login','intent','settings','notifications','messages','compose','signup','tos','privacy'], 'instagram'=>['p','reel','reels','stories','explore'], 'youtube'=>['watch','shorts','playlist','feed','results'], 'tiktok'=>['video','discover','explore'], 'facebook'=>['watch','reel','reels','groups','share','login','profile.php']];
     if (!$valid || in_array(strtolower($handle), $reserved[$platform], true)) throw new InvalidArgumentException('Enter a valid account handle.');
     $handle = mb_strtolower($handle);
     // YouTube channel IDs are case-sensitive.
     if ($channelId) $handle = ltrim($raw, '@');
     $profile = match ($platform) {
+        'x' => 'https://x.com/' . rawurlencode($handle),
         'instagram' => 'https://www.instagram.com/' . rawurlencode($handle) . '/',
         'youtube' => 'https://www.youtube.com/' . ($channelId ? 'channel/' : '@') . rawurlencode($handle),
         'tiktok' => 'https://www.tiktok.com/@' . rawurlencode($handle),
@@ -121,6 +124,7 @@ function apify_request(string $method, string $path, ?array $body = null, array 
 function social_actor_input(array $account): array
 {
     return match ($account['platform']) {
+        'x' => ['twitterHandles'=>[$account['handle']], 'getFollowers'=>false, 'getFollowing'=>false, 'getRetweeters'=>false, 'getAbout'=>false, 'maxItems'=>1],
         'instagram' => ['usernames'=>[$account['handle']]],
         'tiktok' => ['profiles'=>[$account['handle']], 'resultsPerPage'=>1, 'shouldDownloadVideos'=>false, 'shouldDownloadCovers'=>false, 'shouldDownloadSlideshowImages'=>false, 'shouldDownloadSubtitles'=>false],
         'youtube' => ['startUrls'=>[['url'=>$account['profile_url']]], 'maxResults'=>1, 'maxResultsShorts'=>0, 'maxResultStreams'=>0],
@@ -146,22 +150,24 @@ function social_parse(array $account, array $rows): array
         $p = $account['platform'];
         $data = match ($p) { 'tiktok'=>$row['authorMeta'] ?? $row, 'youtube'=>$row['aboutChannelInfo'] ?? $row, default=>$row };
         $identity = match ($p) {
+            'x'=>$data['userName'] ?? '',
             'instagram'=>$data['username'] ?? '', 'tiktok'=>$data['name'] ?? $data['uniqueId'] ?? '',
             'youtube'=>str_contains($account['profile_url'], '/channel/') ? ($data['channelId'] ?? $row['channelId'] ?? '') : ($data['channelUsername'] ?? $row['channelUsername'] ?? ''),
             'facebook'=>ctype_digit($account['handle']) ? (string)($data['pageId'] ?? $data['facebookId'] ?? '') : ($data['pageName'] ?? ''),
         };
         if (mb_strtolower(ltrim((string)$identity, '@')) !== mb_strtolower($account['handle'])) continue;
         $followers = social_count(match ($p) {
+            'x'=>$data['followers'] ?? null,
             'instagram'=>$data['followersCount'] ?? null, 'tiktok'=>$data['fans'] ?? $data['followerCount'] ?? null,
             'youtube'=>$data['numberOfSubscribers'] ?? $row['numberOfSubscribers'] ?? null, 'facebook'=>$data['followers'] ?? null,
         });
         if ($followers === null) continue;
         return [
             'followers'=>$followers,
-            'posts'=>social_count(match ($p) { 'instagram'=>$data['postsCount'] ?? null, 'tiktok'=>$data['video'] ?? $data['videoCount'] ?? null, 'youtube'=>$data['channelTotalVideos'] ?? null, default=>null }),
+            'posts'=>social_count(match ($p) { 'x'=>$data['statusesCount'] ?? null, 'instagram'=>$data['postsCount'] ?? null, 'tiktok'=>$data['video'] ?? $data['videoCount'] ?? null, 'youtube'=>$data['channelTotalVideos'] ?? null, default=>null }),
             'likes'=>social_count(match ($p) { 'tiktok'=>$data['heart'] ?? $data['heartCount'] ?? null, 'facebook'=>$data['likes'] ?? null, default=>null }),
             'views'=>$p === 'youtube' ? social_count($data['channelTotalViews'] ?? null) : null,
-            'display_name'=>mb_substr((string)match ($p) { 'instagram'=>$data['fullName'] ?? $identity, 'tiktok'=>$data['nickName'] ?? $identity, 'youtube'=>$data['channelName'] ?? $row['channelName'] ?? $identity, 'facebook'=>$data['title'] ?? $identity }, 0, 255),
+            'display_name'=>mb_substr((string)match ($p) { 'x'=>$data['name'] ?? $identity, 'instagram'=>$data['fullName'] ?? $identity, 'tiktok'=>$data['nickName'] ?? $identity, 'youtube'=>$data['channelName'] ?? $row['channelName'] ?? $identity, 'facebook'=>$data['title'] ?? $identity }, 0, 255),
         ];
     }
     throw new RuntimeException('No public follower count was returned for this account. Check the handle and profile visibility.');

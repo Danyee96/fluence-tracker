@@ -692,3 +692,5 @@ li.st-sk .spill{color:var(--muted2);background:transparent;border-color:var(--li
 .dash-social-updated{font-size:10px;color:var(--muted2)}.dash-social.stale .dash-social-updated{color:var(--amb)}
 #dashboard-socials .dash-socials{margin-bottom:20px}#dashboard-socials .dash-social{background:rgba(255,255,255,.025);padding:14px;border:1px solid var(--line);border-radius:12px}
 #dashboard-socials .dash-social>.btn{justify-self:start}#dashboard-socials .dash-social-metrics b{font-size:18px}
+
+.platform-x{color:#e7edf7}

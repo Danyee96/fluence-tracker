@@ -131,3 +131,7 @@ Existing creator rows keep social-profile editing inline, but Destination goals 
 ### Recovering missed first syncs
 
 The tracker, social-channel page, and open dashboard overview check active profiles for missed first jobs and due updates through the authenticated/CSRF-protected status endpoint (`sync_due=1`). Jobs are started in bounded batches, existing runs are collected without duplicating paid jobs, and the hourly limit/backoff still applies. Tracker cards poll automatically and include **Sync now**. A server without an Apify token displays **Setup required**, rather than an indefinite Awaiting first sync. The cron job remains required for unattended updates when nobody is viewing the app. Tests: `php tests/social-first-sync.php`.
+
+### X (Twitter)
+
+X is available in all social-platform selectors. Enter `@handle`, `https://x.com/handle`, or a `twitter.com` profile link; stored links are normalized to `https://x.com/handle`. The integration uses `apidojo/twitter-user-scraper` with follower-list, following-list, retweeter, and extra-about extraction explicitly disabled. It requests a single profile result within the existing per-run spending cap. Followers and total posts are stored in daily history and shown on the tracker/dashboard. Favorites/likes-given are deliberately not presented as likes received. The same schedule, fallback polling, hourly limit, profile identity checks, and error handling apply. Actor access, credits, and provider limits still apply. Tests: `php tests/social-x.php` (also supports local MySQL).
