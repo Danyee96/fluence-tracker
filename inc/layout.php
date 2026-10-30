@@ -47,6 +47,9 @@ function page_header(string $title, string $active = '', bool $bare = false): vo
 </header>
 <?php endif; ?>
 <main class="page"><div class="in">
+<?php if ($u && !empty($_SESSION['impersonation'])): ?>
+<div class="impersonation-banner" role="status"><span><?= icon('eye') ?>You are logged in as <strong><?= e($u['name']) ?></strong>.</span><form method="post" action="impersonate.php"><?= csrf_field() ?><input type="hidden" name="action" value="stop"><button class="btn sm" type="submit"><?= icon('back') ?>Return to admin account</button></form></div>
+<?php endif; ?>
 <?php if ($f = flash()): ?>
   <div class="flash <?= e($f['type']) ?>" role="status"><?= icon($f['type'] === 'err' ? 'x' : 'check') ?><span><?= e($f['msg']) ?></span></div>
 <?php endif;

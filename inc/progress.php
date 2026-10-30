@@ -113,6 +113,8 @@ function entry_js(?array $r): ?array
         'info'    => (float)$r['info_rev'],
         'subs'    => $r['subscribers'] !== null ? (int)$r['subscribers'] : null,
         'streams' => $r['income_streams'] !== null ? (int)$r['income_streams'] : null,
+        'profile' => 'updated creator details',
+        'impersonation' => $r['detail'] ?: 'opened a creator account',
         'meeting' => $r['last_meeting'] ?: null,
     ];
 }
@@ -133,6 +135,7 @@ function get_goals(int $cid): array
 /** Logs an action; repeated edits of the same kind within 15 min collapse into one line. */
 function log_activity(int $cid, int $actor, string $action, ?string $month, string $detail = ''): void
 {
+    if (!empty($_SESSION['impersonation']['actor_id'])) $actor=(int)$_SESSION['impersonation']['actor_id'];
     $last = q('SELECT id, created_at FROM activity WHERE creator_id=? AND actor_id=? AND action=? AND month' . ($month === null ? ' IS NULL' : '=?') . ' ORDER BY id DESC LIMIT 1',
         array_values(array_filter([$cid, $actor, $action, $month], fn($v) => $v !== null)))->fetch();
     if ($last && strtotime($last['created_at']) > time() - 900) {
@@ -151,6 +154,8 @@ function activity_verb(array $r): string
         'status'   => 'moved a step' . ($r['detail'] ? ': ' . $r['detail'] : ''),
         'note'     => 'edited ' . ($r['detail'] ?: 'phase') . " notes ($m)",
         'goals'    => 'changed goal targets',
+        'profile' => 'updated creator details',
+        'impersonation' => $r['detail'] ?: 'opened a creator account',
         'meeting' => $r['detail'] ?: 'updated a meeting log',
         'social' => 'updated social channels' . ($r['detail'] ? ': ' . $r['detail'] : ''),
         'plan' => 'updated destinations and path',

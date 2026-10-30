@@ -17,9 +17,9 @@ return [
         ['key' => 'high_ticket', 't' => 'Mid / high-ticket live'],
     ]],
     ['key' => 'sponsors', 'num' => 'PHASE 03', 'name' => 'Sponsors', 'short' => 'Sponsors', 'miles' => [
-        ['key' => 'recurring_sponsor', 't' => 'First recurring sponsor'],
-        ['key' => 'affiliates',        't' => 'Affiliate deals set up'],
-        ['key' => 'one_off',           't' => 'One-off placements'],
+        ['key' => 'recurring_sponsor', 't' => 'Recurring Retainer Sponsors'],
+        ['key' => 'affiliates',        't' => 'Affiliate Sponsors'],
+        ['key' => 'one_off',           't' => 'One Off Deal Flow'],
     ]],
     ['key' => 'scale', 'num' => 'PHASE 04', 'name' => 'Scale & Systemize', 'short' => 'Scale', 'miles' => [
         ['key' => 'systems',     't' => 'Systems & team in place'],

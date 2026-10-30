@@ -109,7 +109,7 @@ The latest logged meeting date is included in dashboard/CSV **Last meeting**, al
 
 ## Destination goals on the dashboard
 
-Creator cards and list rows show current results against targets and progress bars for up to three Destination goals. Open a creator's dashboard overview to see every goal, including custom money, numeric, text, and checkbox goals. Goal progress is separate from Path progress and uses the selected month. Linked revenue/subscriber/income-stream goals use that month's numbers; custom goals use that month's saved results. Missing results remain blank rather than showing a fabricated zero. Percentages follow the same automatic status rules as the tracker. Tests: `php tests/dashboard-goals.php` (also supports local `FL_TEST_MYSQL=1`).
+Creator cards and list rows show current results against targets and progress bars for up to three Destination goals. Open a creator's tracker to see every goal, including custom money, numeric, text, and checkbox goals. Goal progress is separate from Path progress and uses the selected month. Linked revenue/subscriber/income-stream goals use that month's numbers; custom goals use that month's saved results. Missing results remain blank rather than showing a fabricated zero. Percentages follow the same automatic status rules as the tracker. Tests: `php tests/dashboard-goals.php` (also supports local `FL_TEST_MYSQL=1`).
 
 ## Creator setup from Users & Logins
 
@@ -119,7 +119,7 @@ The user, targets, and social-profile changes are saved atomically. Validation f
 
 New profiles queue a first sync after the user is saved, without blocking account creation on provider network requests. The browser starts these jobs through an authenticated, CSRF-protected endpoint; the scheduled worker is the fallback. Normal login-management permissions are unchanged: Super Admins manage logins, while Admins can still edit plans and social channels from creator trackers.
 
-Creator dashboard cards and their overview now include **Social analytics · latest**. The overview shows every fetched metric (followers/subscribers, supported post/video counts, likes, channel views), growth, and sparklines. Actual capture times, stale/missing values, errors, and paused accounts are identified. **Refresh stats** requests an update subject to the existing hourly limit. The open overview reloads saved social data every minute (more frequently while a job is running). Public scraper counts may be rounded, hidden, or temporarily unavailable; unknown values remain blank, and failures do not replace a last successful count with zero. Hostinger still requires the Apify token and cron job configured on that server for unattended updates.
+Creator dashboard cards and the tracker include **Social analytics · latest**. The overview shows every fetched metric (followers/subscribers, supported post/video counts, likes, channel views), growth, and sparklines. Actual capture times, stale/missing values, errors, and paused accounts are identified. **Refresh stats** requests an update subject to the existing hourly limit. Public scraper counts may be rounded, hidden, or temporarily unavailable; unknown values remain blank, and failures do not replace a last successful count with zero. Hostinger still requires the Apify token and cron job configured on that server for unattended updates.
 
 Tests: `php tests/creator-details.php` or `FL_TEST_MYSQL=1 php tests/creator-details.php`.
 
@@ -130,8 +130,14 @@ Existing creator rows keep social-profile editing inline, but Destination goals 
 
 ### Recovering missed first syncs
 
-The tracker, social-channel page, and open dashboard overview check active profiles for missed first jobs and due updates through the authenticated/CSRF-protected status endpoint (`sync_due=1`). Jobs are started in bounded batches, existing runs are collected without duplicating paid jobs, and the hourly limit/backoff still applies. Tracker cards poll automatically and include **Sync now**. A server without an Apify token displays **Setup required**, rather than an indefinite Awaiting first sync. The cron job remains required for unattended updates when nobody is viewing the app. Tests: `php tests/social-first-sync.php`.
+The tracker and social-channel page check active profiles for missed first jobs and due updates through the authenticated/CSRF-protected status endpoint (`sync_due=1`). Jobs are started in bounded batches, existing runs are collected without duplicating paid jobs, and the hourly limit/backoff still applies. Tracker cards poll automatically and include **Sync now**. A server without an Apify token displays **Setup required**, rather than an indefinite Awaiting first sync. The cron job remains required for unattended updates when nobody is viewing the app. Tests: `php tests/social-first-sync.php`.
 
 ### X (Twitter)
 
 X is available in all social-platform selectors. Enter `@handle`, `https://x.com/handle`, or a `twitter.com` profile link; stored links are normalized to `https://x.com/handle`. The integration uses `apidojo/twitter-user-scraper` with follower-list, following-list, retweeter, and extra-about extraction explicitly disabled. It requests a single profile result within the existing per-run spending cap. Followers and total posts are stored in daily history and shown on the tracker/dashboard. Favorites/likes-given are deliberately not presented as likes received. The same schedule, fallback polling, hourly limit, profile identity checks, and error handling apply. Actor access, credits, and provider limits still apply. Tests: `php tests/social-x.php` (also supports local MySQL).
+
+## Creator navigation and admin access
+
+Dashboard cards and list rows open the creator tracker directly. Admins and superadmins can use **Edit creator** beside the back button to update basic information and repeatable social profiles, with a link to edit destinations and the path. Only superadmins can change login activation.
+
+**Log in as creator** opens an active creator account without changing its password. A banner provides **Return to admin account**, preserving the selected month. Switching requires a CSRF-protected POST, rotates the session and CSRF token, and records the original admin in activity logs. Creator permissions apply during the session; staff accounts cannot be impersonated. Each request revalidates the original admin account, and a removed, disabled, or promoted creator ends the creator session.

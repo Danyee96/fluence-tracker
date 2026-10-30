@@ -179,4 +179,4 @@ Password: <?= e($newLogin['password']) ?></pre>
 <template id="creator-goal-template"><?php creator_goal_row([], '__INDEX__'); ?></template>
 <template id="creator-social-template"><?php creator_social_row([], '__INDEX__'); ?></template>
 <script>window.FL_SOCIAL_QUEUE=<?= js_json(social_enabled()?$socialQueue:null) ?>;</script>
-<?php page_footer(['users.js']); ?>
+<?php page_footer(['creator-details.js', 'users.js']); ?>

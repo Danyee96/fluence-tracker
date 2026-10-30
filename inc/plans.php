@@ -17,7 +17,25 @@ function plan_schema(bool $sqlite): array
 function creator_plan(int $cid): array
 {
     $row = q('SELECT definition, revision FROM creator_plans WHERE creator_id=?', [$cid])->fetch();
-    if ($row) return json_decode($row['definition'], true, 512, JSON_THROW_ON_ERROR) + ['revision' => (int)$row['revision']];
+    if ($row) {
+        $plan = json_decode($row['definition'], true, 512, JSON_THROW_ON_ERROR);
+        // Refresh the original sponsor wording without replacing custom admin titles.
+        $labels = [
+            'recurring_sponsor' => ['First recurring sponsor', 'Recurring Retainer Sponsors'],
+            'affiliates' => ['Affiliate deals set up', 'Affiliate Sponsors'],
+            'one_off' => ['One-off placements', 'One Off Deal Flow'],
+        ];
+        foreach ($plan['phases'] as &$phase) {
+            if ($phase['key'] !== 'sponsors') continue;
+            foreach ($phase['miles'] as &$task) {
+                $label = $labels[$task['key']] ?? null;
+                if ($label && $task['t'] === $label[0]) $task['t'] = $label[1];
+            }
+            unset($task);
+        }
+        unset($phase);
+        return $plan + ['revision' => (int)$row['revision']];
+    }
     $g = get_goals($cid);
     return ['revision' => 0, 'goals' => [
         ['key' => 'target_revenue', 'title' => 'Monthly revenue', 'type' => 'money', 'target' => (string)$g['target_revenue'], 'source' => 'revenue', 'description' => ''],

@@ -49,7 +49,6 @@ page_header('Dashboard', 'dashboard');
   <div class="feed" id="feed"></div>
 </section>
 
-<div class="modal" id="modal" hidden><div class="mcard" id="mcard" role="dialog" aria-modal="true"></div></div>
 
 <script>window.FL_DASH = <?= js_json([
     'month'      => $month,

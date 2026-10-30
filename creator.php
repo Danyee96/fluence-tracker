@@ -63,7 +63,13 @@ $data = [
 page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
 ?>
 <?php if (is_staff($u)): ?>
-  <a class="back" href="dashboard.php?m=<?= e($month) ?>"><?= icon('back') ?>Back to all creators</a>
+  <div class="creator-page-actions">
+    <a class="back" href="dashboard.php?m=<?= e($month) ?>"><?= icon('back') ?>Back to all creators</a>
+    <div class="creator-page-actions-right">
+      <a class="btn" href="creator-edit.php?id=<?= $cid ?>&m=<?= e($month) ?>"><?= icon('edit') ?>Edit creator</a>
+      <form method="post" action="impersonate.php"><?= csrf_field() ?><input type="hidden" name="action" value="start"><input type="hidden" name="cid" value="<?= $cid ?>"><input type="hidden" name="month" value="<?= e($month) ?>"><button class="btn primary" type="submit" <?= !(int)$creator['is_active']?'disabled title="Enable this creator account first"':'' ?>><?= icon('user') ?>Log in as creator</button></form>
+    </div>
+  </div>
 <?php endif; ?>
 
 <section class="hero">

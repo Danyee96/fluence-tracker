@@ -99,7 +99,7 @@
           '<div class="dash-goal-numbers"><span class="dash-goal-current">' + current + '</span>' + (target ? '<span class="dash-goal-target"> / ' + target + '</span>' : '') + '</div>' +
           (goal.measurable ? '<div class="dash-goal-bar"><i style="width:' + goal.percent + '%"></i></div>' : '') + '</div>';
       }).join('') : '<p class="hint">No destination goals set.</p>') +
-      (compact && goals.length > shown.length ? '<span class="dash-goals-more">+' + (goals.length - shown.length) + ' more · Open overview to see all</span>' : '') + '</div>';
+      (compact && goals.length > shown.length ? '<span class="dash-goals-more">+' + (goals.length - shown.length) + ' more · Open tracker to see all</span>' : '') + '</div>';
   }
 
   function socialsHtml(cr, compact) {
@@ -119,7 +119,7 @@
           (!compact && account.history.length > 1 ? U.spark(account.history.map(function (day) { return day.followers; }), 260, 35) : '') +
           (!compact && account.active ? '<button class="btn sm ghost" type="button" data-social-refresh="' + account.id + '" data-cid="' + cr.id + '">Refresh stats</button>' : '') + '</div>';
       }).join('') : '<p class="hint">No social profiles linked.</p>') +
-      (compact && accounts.length > shown.length ? '<span class="dash-goals-more">+' + (accounts.length - shown.length) + ' more profiles in overview</span>' : '') +
+      (compact && accounts.length > shown.length ? '<span class="dash-goals-more">+' + (accounts.length - shown.length) + ' more profiles in tracker</span>' : '') +
       (!compact ? '<p class="hint">Public counts reported by the provider; some platforms round or hide counts. Syncs run on the configured schedule. Refreshes are limited to once per hour per profile.</p>' : '') + '</div>';
   }
 
@@ -145,7 +145,7 @@
       box.innerHTML = '<div class="mtable-wrap"><table class="mtable dtable"><thead><tr><th>Creator</th><th>Phase</th><th>Path progress</th><th>Destination goals</th><th class="n">Revenue</th><th class="n">Sub growth</th><th>Last meeting</th><th>Updated</th></tr></thead><tbody>' +
         shown.map(function (cr) {
           var i = list.indexOf(cr);
-          return '<tr data-i="' + i + '" tabindex="0" class="' + (cr.active ? '' : 'off') + '"><td><div class="who-cell">' + U.avatar(cr.initials, cr.hue, 'sm') + '<div><b>' + esc(cr.name) + '</b><small>' + sub(cr) + '</small></div>' + tag(cr) + '</div></td>' +
+          return '<tr data-i="' + i + '" data-url="' + esc(cr.url) + '" tabindex="0" class="' + (cr.active ? '' : 'off') + '"><td><div class="who-cell">' + U.avatar(cr.initials, cr.hue, 'sm') + '<div><b><a class="creator-row-link" href="' + esc(cr.url) + '">' + esc(cr.name) + '</a></b><small>' + sub(cr) + '</small></div>' + tag(cr) + '</div></td>' +
             '<td><span class="phpill ' + tone(cr) + '">' + esc(cr.current.label) + '</span></td>' +
             '<td><div class="prog-cell">' + segbar(cr) + '<b>' + cr.overall + '%</b></div></td>' +
             '<td class="dash-goals-cell">' + goalsHtml(cr, true) + '</td>' +
@@ -153,8 +153,8 @@
             '<td>' + esc(cr.lastMeeting || '—') + '</td><td class="muted">' + esc(cr.updatedAgo || '—') + '</td></tr>';
         }).join('') + '</tbody></table></div>';
       box.querySelectorAll('tr[data-i]').forEach(function (tr) {
-        tr.addEventListener('click', function () { openPanel(+this.dataset.i); });
-        tr.addEventListener('keydown', function (e) { if (e.key === 'Enter') openPanel(+this.dataset.i); });
+        tr.addEventListener('click', function (event) { if (!event.target.closest('a,button,form,input,select')) location.href = this.dataset.url; });
+        tr.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target === this) location.href = this.dataset.url; });
       });
       return;
     }
@@ -162,7 +162,7 @@
     box.className = 'grid';
     box.innerHTML = shown.map(function (cr) {
       var k = tone(cr), i = list.indexOf(cr);
-      return '<button type="button" class="card' + (cr.active ? '' : ' off') + (needs(cr) ? ' needs' : '') + '" data-i="' + i + '">' +
+      return '<a href="' + esc(cr.url) + '" class="card' + (cr.active ? '' : ' off') + (needs(cr) ? ' needs' : '') + '" data-i="' + i + '">' +
         '<div class="card-top">' + U.avatar(cr.initials, cr.hue) + '<div class="ct"><span class="cname">' + esc(cr.name) + '</span><span class="csub">' + sub(cr) + '</span></div>' + tag(cr) + '</div>' +
         '<div class="phrow"><span class="phpill ' + k + '">' + esc(cr.current.label) + '</span><span class="pct">' + cr.overall + '<small>%</small></span></div>' +
         segbar(cr) +
@@ -171,87 +171,9 @@
         '<div class="card-spark"><span class="sl">Revenue · 6 mo</span>' + U.spark(cr.spark, 220, 34, '#22d3ee') + '</div>' +
         '<div class="card-foot"><span>' + I('clock') + (cr.updatedAgo ? 'Updated ' + esc(cr.updatedAgo) : 'No activity yet') + '</span>' +
         (cr.feedback ? '<span>' + I('chat') + cr.feedback + '</span>' : '') +
-        (cr.programMonth ? '<span class="pm">Mo ' + cr.programMonth + '</span>' : '') + '</div></button>';
+        (cr.programMonth ? '<span class="pm">Mo ' + cr.programMonth + '</span>' : '') + '</div></a>';
     }).join('');
-    box.querySelectorAll('.card').forEach(function (el) {
-      el.addEventListener('click', function () { openPanel(+this.dataset.i); });
-    });
   }
-
-  /* ---------- panel ---------- */
-  var lastFocus = null, selectedCreator = null, socialPollTimer = null;
-  function openPanel(i) {
-    var cr = list[i]; if (!cr) return;
-    lastFocus = document.activeElement;
-    selectedCreator = cr;
-    var cur = cr.current, ov = cr.overall;
-    var steps = cr.phases.map(function (p, n) {
-      var st = p.pct >= 100 ? 'd' : (p.pct > 0 || cur.k === p.key ? 'c' : 'g');
-      return '<div class="pstep ' + st + (cur.k === p.key ? ' cur' : '') + '"><span class="pdot">' + (p.pct >= 100 ? I('check') : (n + 1)) + '</span><span class="pl">' + esc(p.label) + '</span><span class="pv">' + p.pct + '%</span></div>';
-    }).join('');
-    document.getElementById('mcard').innerHTML =
-      '<button class="mclose iconbtn" id="mclose" aria-label="Close">' + I('x') + '</button>' +
-      '<div class="m-head">' + U.avatar(cr.initials, cr.hue, 'lg') + '<div><div class="mname">' + esc(cr.name) + '</div><div class="mmeta">' + sub(cr) + (cr.programMonth ? ' · Month ' + cr.programMonth + ' of program' : '') + '</div></div></div>' +
-      '<div class="m-ov"><div class="kpi-ring">' + U.ring(ov, 76, 8) + '<b>' + ov + '%</b></div><div><div class="mcur">Currently in <b>' + esc(cur.label) + '</b></div>' +
-      '<div class="mmeta">' + (cur.k === 'done' ? 'Every phase complete' : cur.k === 'new' ? 'Roadmap not started yet' : cur.pct + '% through this phase') + ' · ' + esc(D.monthLabel) + '</div></div></div>' +
-      '<div class="psteps">' + steps + '</div>' +
-      '<div class="mstats">' + statsHtml(cr) + '</div>' +
-      goalsHtml(cr, false) + '<div id="dashboard-socials">' + socialsHtml(cr, false) + '</div>' +
-      '<div class="m-charts"><div><span class="sl">Revenue · 6 mo</span>' + U.spark(cr.spark, 220, 46, '#6366f1') + '</div><div><span class="sl">Subscribers · 6 mo</span>' + U.spark(cr.sparkSubs, 220, 46, '#22d3ee') + '</div></div>' +
-      '<div class="m-foot"><span class="muted">' + I('clock') + (cr.updatedAgo ? 'Updated ' + esc(cr.updatedAgo) : 'No activity yet') + (cr.feedback ? ' · ' + cr.feedback + ' feedback note' + (cr.feedback === 1 ? '' : 's') : '') + '</span>' +
-      '<div class="m-actions">' + (D.role === 'superadmin' ? '<a class="btn sm" href="users.php#u' + cr.id + '">' + I('key') + '<span>Login</span></a>' : '') +
-      '<a class="btn primary sm" href="' + esc(cr.url) + '"><span>Open full tracker</span>' + I('arrow') + '</a></div></div>';
-    var modal = document.getElementById('modal');
-    modal.hidden = false; document.body.classList.add('locked');
-    document.getElementById('mclose').addEventListener('click', closePanel);
-    document.getElementById('mclose').focus();
-    if ((cr.socials || []).length) pollSocials(cr,true);
-  }
-  function closePanel() {
-    var m = document.getElementById('modal'); if (m.hidden) return;
-    m.hidden = true; document.body.classList.remove('locked');
-    clearTimeout(socialPollTimer);
-    selectedCreator = null;
-    if (lastFocus) lastFocus.focus();
-  }
-  function updateSocials(cr, accounts) {
-    cr.socials = accounts;
-    if (selectedCreator && selectedCreator.id === cr.id) {
-      var target = document.getElementById('dashboard-socials');
-      if (target) target.innerHTML = socialsHtml(cr, false);
-    }
-    renderGrid();
-  }
-  function pollSocials(cr, immediate) {
-    clearTimeout(socialPollTimer);
-    if (!selectedCreator || selectedCreator.id !== cr.id) return;
-    var delay = immediate ? 1000 : (cr.socials || []).some(function (a) { return a.status === 'syncing' || (a.active && a.followers == null && !a.error); }) ? 10000 : 60000;
-    socialPollTimer = setTimeout(function () {
-      if (document.hidden) { pollSocials(cr); return; }
-      fetch('social-status.php', {method:'POST', credentials:'same-origin', headers:{'X-CSRF':document.querySelector('meta[name=csrf]').content}, body:new URLSearchParams({cid:cr.id,sync_due:'1',manage:'0'})})
-        .then(function (r) { return r.json(); }).then(function (data) {
-          if (!data.ok) return;
-          updateSocials(cr, data.socials);
-          pollSocials(cr);
-        }).catch(function () { pollSocials(cr); });
-    }, delay);
-  }
-  document.getElementById('mcard').addEventListener('click', function (event) {
-    var button = event.target.closest('[data-social-refresh]');
-    if (!button || !selectedCreator) return;
-    var cr = selectedCreator;
-    button.disabled = true; button.textContent = 'Updating…';
-    fetch('social-refresh.php', {method:'POST', credentials:'same-origin', headers:{'X-CSRF':document.querySelector('meta[name=csrf]').content}, body:new URLSearchParams({cid:cr.id,account_id:button.dataset.socialRefresh})})
-      .then(function (r) { return r.json(); }).then(function (data) {
-        if (!data.ok) { U.toast(data.error || 'Could not refresh stats.', 'err'); return; }
-        updateSocials(cr,data.socials);
-        U.toast('Refresh checked. Each profile can start one update per hour.');
-        if (data.socials.some(function (a) { return a.status === 'syncing'; })) pollSocials(cr);
-      }).catch(function () { U.toast('Could not connect. Try again.', 'err'); })
-      .finally(function () { if (button.isConnected) { button.disabled = false; button.textContent = 'Refresh stats'; } });
-  });
-  document.getElementById('modal').addEventListener('click', function (e) { if (e.target === this) closePanel(); });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closePanel(); });
 
   /* ---------- activity feed ---------- */
   function renderFeed() {
