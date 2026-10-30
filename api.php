@@ -60,6 +60,17 @@ try {
             log_activity($cid, $me, 'status', $month, milestone_title($key, $cid) . ' → ' . STATUS_LABEL[$st]);
             break;
 
+        case 'task_note':
+            $key = (string)($in['key'] ?? '');
+            $item = plan_item($cid, $key);
+            if (!$month || !$item || $item['kind'] !== 'task') $bad('This task no longer exists. Refresh the tracker.');
+            upsert('phase_notes', ['creator_id', 'month', 'phase_key'], [
+                'creator_id'=>$cid, 'month'=>$month, 'phase_key'=>task_note_key($key),
+                'notes'=>mb_substr((string)($in['notes'] ?? ''), 0, 5000),
+            ]);
+            log_activity($cid, $me, 'note', $month, $item['t']);
+            break;
+
         case 'note':
             $phase = (string)($in['phase'] ?? '');
             if (!$month || !in_array($phase, array_column(phases($cid), 'key'), true)) $bad();

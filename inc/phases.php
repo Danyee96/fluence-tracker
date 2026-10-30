@@ -21,9 +21,4 @@ return [
         ['key' => 'affiliates',        't' => 'Affiliate Sponsors'],
         ['key' => 'one_off',           't' => 'One Off Deal Flow'],
     ]],
-    ['key' => 'scale', 'num' => 'PHASE 04', 'name' => 'Scale & Systemize', 'short' => 'Scale', 'miles' => [
-        ['key' => 'systems',     't' => 'Systems & team in place'],
-        ['key' => 'diversified', 't' => 'Revenue diversified'],
-        ['key' => 'brand_irl',   't' => 'Brand & IRL plays'],
-    ]],
 ];

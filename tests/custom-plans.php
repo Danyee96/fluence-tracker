@@ -20,11 +20,20 @@ function check(bool $condition, string $message): void { if (!$condition) throw 
 migrate(); migrate();
 foreach (['One', 'Two'] as $name) q("INSERT INTO users (name,email,password_hash,role,created_at) VALUES (?,?,?,'creator',?)", [$name, $name . '@test.local', 'unused', now()]);
 $default = creator_plan(1);
-check(count($default['goals']) === 3 && count($default['phases']) === 4, 'Legacy defaults missing');
-check(count(milestone_keys(1)) === 13, 'Legacy keys changed');
+check(count($default['goals']) === 3 && count($default['phases']) === 3, 'Legacy defaults missing');
+check(count(milestone_keys(1)) === 10, 'Legacy keys changed');
 save_status(1, '2026-09', 'audio', 'cp');
 [$map, $from] = get_statuses(1, '2026-10');
 check($from === '2026-09' && $map['audio'] === 'cp', 'Legacy carry-forward broken');
+// Previously saved plans must also omit the retired phase without deleting its history.
+$legacy = $default;
+$legacy['phases'][] = ['key'=>'scale','name'=>'Scale & Systemize','miles'=>[['key'=>'systems','t'=>'Systems & team in place']]];
+q('INSERT INTO creator_plans (creator_id,definition) VALUES (?,?)', [2,json_encode($legacy)]);
+upsert('tracker_values',['creator_id','month','item_key'],['creator_id'=>2,'month'=>'2026-10','item_key'=>'systems','value'=>'1','status'=>'cp']);
+check(count(creator_plan(2)['phases']) === 3 && plan_item(2,'systems') === null, 'Saved Scale phase still visible');
+check(compute_progress(['audio'=>'cp','systems'=>'cp'],2)['overall'] === 10, 'Retired phase affects progress');
+check(q("SELECT value FROM tracker_values WHERE creator_id=2 AND item_key='systems'")->fetchColumn() === '1', 'Historical Scale results lost');
+q('DELETE FROM creator_plans WHERE creator_id=2');
 $plan = $default; unset($plan['revision']);
 $plan['goals'][] = ['key' => 'budget', 'title' => 'Budget', 'type' => 'money', 'target' => '500', 'source' => 'manual'];
 $plan['phases'] = [['key' => 'custom_phase', 'name' => 'Launch', 'short' => 'Launch', 'miles' => [
@@ -36,7 +45,7 @@ $plan['phases'] = [['key' => 'custom_phase', 'name' => 'Launch', 'short' => 'Lau
 q('INSERT INTO creator_plans (creator_id,definition) VALUES (?,?)', [1, json_encode($plan)]);
 check(milestone_keys(1) === ['revenue', 'leads'], 'Nested progress must count leaves only');
 check(plan_item(1, 'leads')['kind'] === 'task' && plan_item(2, 'leads') === null, 'Creator isolation broken');
-check(count(creator_plan(2)['phases']) === 4, 'Customization affected another creator');
+check(count(creator_plan(2)['phases']) === 3, 'Customization affected another creator');
 check(compute_progress(['revenue' => 'cp'], 1, ['revenue'=>['value'=>'1000']])['overall'] === 50, 'Nested progress calculation failed');
 check(compute_progress(['revenue' => 'cp', 'leads' => 'sk'], 1, ['revenue'=>['value'=>'1000']])['overall'] === 100, 'Skipped tasks calculation failed');
 check(typed_value('money', '12.345') === '12.35' && typed_value('number', '0') === '0', 'Numeric validation failed');

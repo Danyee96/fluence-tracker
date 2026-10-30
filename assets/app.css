@@ -711,3 +711,10 @@ li.st-sk .spill{color:var(--muted2);background:transparent;border-color:var(--li
 .impersonation-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;border:1px solid rgba(245,184,75,.4);background:rgba(245,184,75,.08);border-radius:12px;padding:14px 16px;margin-bottom:20px;color:var(--amb);font-size:13px}
 .impersonation-banner>span{display:inline-flex;align-items:center;gap:7px;flex-wrap:wrap}.impersonation-banner form{margin:0}
 @media(max-width:640px){.creator-page-actions-right{width:100%}.creator-page-actions-right>.btn,.creator-page-actions-right>form{flex:1}.creator-page-actions-right form>.btn{width:100%}.impersonation-banner{align-items:flex-start}}
+
+.task-details>summary{cursor:pointer;list-style:none;flex-wrap:wrap;min-height:44px}
+.task-details>summary::-webkit-details-marker{display:none}
+.task-open-label{display:inline-flex;align-items:center;gap:6px;color:var(--cyan);font-size:12px;margin-left:auto}
+.task-open-label svg{width:16px;height:16px}.task-details[open]>summary .task-open-label svg{transform:rotate(180deg)}
+.task-detail-section{margin-top:18px}.task-detail-section h5{font-size:14px;margin:0 0 10px;color:var(--fg)}
+.task-details>summary:focus-visible{outline:2px solid var(--cyan);outline-offset:5px;border-radius:6px}

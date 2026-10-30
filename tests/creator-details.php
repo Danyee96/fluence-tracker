@@ -8,7 +8,7 @@ check(count($input['goals'])===4 && $input['socials'][0]['handle']==='apify','Cr
 check($input['goals'][0]['source']==='revenue','Default goal lost monthly link');
 db()->beginTransaction();$queue=save_creator_details(2,$input,$plan);db()->commit();
 check(count($queue)===1 && count(social_accounts(2))===1,'Social accounts not queued');
-$stored=creator_plan(2);check(count($stored['goals'])===4 && count($stored['phases'])===4,'Plan creation lost goals or phases');
+$stored=creator_plan(2);check(count($stored['goals'])===4 && count($stored['phases'])===3,'Plan creation lost goals or phases');
 $accounts=social_accounts(2);$id=$accounts[0]['id'];
 $external=['creator_details_complete'=>'1','plan_revision'=>$stored['revision'],'social_revision'=>social_edit_fingerprint($accounts),'goals_edit_mode'=>'external','creator_goals'=>[],'creator_socials'=>[['id'=>$id,'platform'=>'instagram','handle'=>'apify']]];
 check(creator_details_input($external,$stored,$accounts)['goals']===$stored['goals'],'Profile edit without inline goal fields removed targets');

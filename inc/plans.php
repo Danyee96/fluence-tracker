@@ -19,6 +19,8 @@ function creator_plan(int $cid): array
     $row = q('SELECT definition, revision FROM creator_plans WHERE creator_id=?', [$cid])->fetch();
     if ($row) {
         $plan = json_decode($row['definition'], true, 512, JSON_THROW_ON_ERROR);
+        // Retire the original Scale phase from saved plans; keep historical results intact.
+        $plan['phases'] = array_values(array_filter($plan['phases'], static fn(array $phase): bool => $phase['key'] !== 'scale'));
         // Refresh the original sponsor wording without replacing custom admin titles.
         $labels = [
             'recurring_sponsor' => ['First recurring sponsor', 'Recurring Retainer Sponsors'],
@@ -172,4 +174,10 @@ function creator_goal_progress(int $cid, string $month, ?array $entry = null, ?a
         ];
     }
     return $goals;
+}
+
+/** Keep task notes separate from phase notes within the existing 60-character key. */
+function task_note_key(string $key): string
+{
+    return 'task_' . sha1($key);
 }

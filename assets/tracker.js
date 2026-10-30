@@ -301,12 +301,18 @@
   function renderTasks(nodes) {
     return '<ul class="task-tree">' + nodes.map(function (m) {
       var children = m.children || [], leaf = !children.length, p = nodeProgress(m), pct = displayedPct(p), saved = drafts[m.key] || F.values[m.key] || {};
-      return '<li class="task-node st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><div class="task-heading"><h4>' + esc(m.t) + '</h4><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span></div>' +
+      var note = F.notes['task:' + m.key] || '';
+      var notes = F.canEdit ? '<textarea data-task-note="' + esc(m.key) + '" rows="3" maxlength="5000" placeholder="Notes, blockers, next actions…">' + esc(note) + '</textarea>' : '<div class="ro">' + (note ? esc(note) : '<span class="muted">No notes this month.</span>') + '</div>';
+      return '<li class="task-node st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><details class="task-details"><summary class="task-heading"><h4>' + esc(m.t) + '</h4><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span><span class="task-open-label">View details ' + I('chevron') + '</span></summary>' +
         '<div class="task-progress-track"><i class="task-progress-fill" style="width:' + pct + '%"></i></div>' +
         (m.description ? '<p class="task-description">' + esc(m.description) + '</p>' : '') +
+        '<div class="task-detail-section"><h5>KPIs</h5>' +
         (m.target !== '' && m.target != null ? '<div class="goal-target">Target: ' + valueFormat(m.type || 'check', m.target) + '</div>' : '') +
-        ((m.type === 'number' || m.type === 'money') && !(+m.target > 0) ? '<p class="hint">An admin can add a positive target to measure completion.</p>' : '') +
-        (leaf ? (F.canRespond ? resultForm(m, 'task') : (m.type && m.type !== 'check' ? '<div class="goal-result">' + valueFormat(m.type, saved.value) + '</div>' : '')) : renderTasks(children)) + '</li>';
+        '<p class="hint">' + (leaf ? (m.type === 'number' || m.type === 'money' ? 'Enter your current result to update progress automatically.' : 'Completion is tracked below.') : 'Progress is calculated from the to-do list below.') + '</p>' +
+        (leaf && m.type && m.type !== 'check' ? (F.canRespond ? resultForm(m, 'task') : '<div class="goal-result">' + valueFormat(m.type, saved.value) + '</div>') : '') + '</div>' +
+        '<div class="task-detail-section"><h5>To-do list</h5>' +
+        (leaf ? ((m.type || 'check') === 'check' && F.canRespond ? resultForm(m, 'task') : '<p class="hint">' + (m.type && m.type !== 'check' ? 'Reach the KPI target above to complete this step.' : LABEL[p.status]) + '</p>') : renderTasks(children)) + '</div>' +
+        '<div class="notes task-detail-section"><label>Notes · ' + esc(F.monthLabel) + '</label>' + notes + '</div></details></li>';
     }).join('') + '</ul>';
   }
   function renderPhases() {
@@ -330,6 +336,11 @@
       if (!noteSavers[key]) noteSavers[key] = U.debounce(function () { send({ action:'note', phase:key, notes:F.notes[key] || '' }); }, 800);
       ta.addEventListener('input', function () { F.notes[key] = this.value; autosize(this); noteSavers[key](); });
     });
+    box.querySelectorAll('textarea[data-task-note]').forEach(function (ta) {
+      var key = ta.dataset.taskNote, storageKey = 'task:' + key;
+      var save = U.debounce(function () { send({action:'task_note', key:key, notes:F.notes[storageKey] || ''}); }, 800);
+      ta.addEventListener('input', function () { F.notes[storageKey] = this.value; autosize(this); save(); });
+    });
     box.onclick = function (event) {
       var toggle = event.target.closest('.phase-expand'), step = event.target.closest('[data-task-to]');
       if (toggle) {
@@ -342,7 +353,7 @@
         var phase = step.closest('.phase'), button = phase.querySelector('.phase-expand');
         if (button.getAttribute('aria-expanded') !== 'true') button.click();
         var task = document.getElementById('task-' + step.dataset.taskTo);
-        if (task) { task.scrollIntoView({behavior:'smooth', block:'center'}); var input = task.querySelector('input, textarea'); if (input) input.focus({preventScroll:true}); }
+        if (task) { task.querySelector('details').open = true; task.scrollIntoView({behavior:'smooth', block:'center'}); var input = task.querySelector('input, textarea'); if (input) input.focus({preventScroll:true}); }
       }
     };
   }

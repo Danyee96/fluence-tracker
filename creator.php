@@ -23,6 +23,9 @@ $notes = [];
 foreach (q('SELECT phase_key, notes FROM phase_notes WHERE creator_id=? AND month=?', [$cid, $month])->fetchAll() as $r) {
     $notes[$r['phase_key']] = $r['notes'];
 }
+foreach ($plan['phases'] as $phase) foreach (task_nodes($phase['miles']) as $task) {
+    $notes['task:'.$task['key']] = $notes[task_note_key($task['key'])] ?? '';
+}
 $entryRow = get_entry($cid, $month);
 $entryMeta = null;
 if ($entryRow && $entryRow['updated_at']) {

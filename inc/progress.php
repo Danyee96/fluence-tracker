@@ -113,8 +113,6 @@ function entry_js(?array $r): ?array
         'info'    => (float)$r['info_rev'],
         'subs'    => $r['subscribers'] !== null ? (int)$r['subscribers'] : null,
         'streams' => $r['income_streams'] !== null ? (int)$r['income_streams'] : null,
-        'profile' => 'updated creator details',
-        'impersonation' => $r['detail'] ?: 'opened a creator account',
         'meeting' => $r['last_meeting'] ?: null,
     ];
 }
