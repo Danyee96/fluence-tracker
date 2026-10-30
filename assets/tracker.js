@@ -39,8 +39,7 @@
     value = String(value == null ? '' : value).trim();
     if (!value || ((type === 'number' || type === 'money') && +value <= 0)) return {status:'todo', percent:0};
     if (type === 'text') {
-      var done = !target || value.toLowerCase() === target.toLowerCase();
-      return {status:done ? 'cp' : 'ip', percent:done ? 100 : 0};
+      return {status:'cp', percent:100};
     }
     if (!target || +target <= 0) return {status:'ip', percent:0};
     var pct = Math.min(100, +value / +target * 100);

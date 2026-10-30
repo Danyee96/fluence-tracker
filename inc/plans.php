@@ -138,8 +138,7 @@ function item_progress(array $item, mixed $value, string $legacy = 'todo'): arra
     if ($value === '' || (in_array($type, ['money','number'], true) && (float)$value <= 0)) return ['status'=>'todo', 'percent'=>0.0];
     $target = trim((string)($item['target'] ?? ''));
     if ($type === 'text') {
-        $done = $target === '' || mb_strtolower($value) === mb_strtolower($target);
-        return ['status'=>$done ? 'cp' : 'ip', 'percent'=>$done ? 100.0 : 0.0];
+        return ['status'=>'cp', 'percent'=>100.0];
     }
     if ($target === '' || (float)$target <= 0) return ['status'=>'ip', 'percent'=>0.0];
     $percent = min(100.0, (float)$value / (float)$target * 100);
