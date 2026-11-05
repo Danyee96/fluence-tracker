@@ -21,7 +21,7 @@ function page_header(string $title, string $active = '', bool $bare = false): vo
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="assets/app.css?v=<?= $v ?>">
 </head>
-<body data-assistant-user="<?= $u ? (int)$u['id'] : 0 ?>" class="<?= $bare ? 'bare' : '' ?>">
+<body data-chat-page="<?= basename($_SERVER['SCRIPT_NAME']??'')==='assistant.php'?'1':'0' ?>" data-assistant-user="<?= $u ? (int)$u['id'] : 0 ?>" class="<?= $bare ? 'bare' : '' ?>">
 <?php if ($u): ?>
 <header class="nav">
   <div class="nav-in">
@@ -63,11 +63,12 @@ function page_footer(array $scripts = []): void
     ?>
 </div></main>
 <?php if (assistant_local() && current_user()): $scripts[]='assistant-format.js';$scripts[]='assistant.js';$chatPage=basename($_SERVER['SCRIPT_NAME']??'')==='assistant.php'; ?>
-<?php if($chatPage):?><div class="assistant-workspace"><aside class="assistant-chat-sidebar"><div><h2>Your chats</h2><button class="btn sm" type="button" id="assistant-sidebar-new"><?= icon('plus') ?>New chat</button></div><p class="hint">Saved in this browser tab</p><div id="assistant-chat-list"></div></aside><?php else: ?>
+<?php if($chatPage):?><div class="assistant-workspace"><aside class="assistant-chat-sidebar"><div><h2>Your chats</h2><button class="btn sm" type="button" id="assistant-sidebar-new"><?= icon('plus') ?>New chat</button></div><label class="assistant-search"><span class="assistant-sr">Search chats</span><input type="search" id="assistant-search" placeholder="Search conversations…"></label><div id="assistant-chat-list"></div></aside><?php else: ?>
 <button type="button" class="assistant-launcher" id="assistant-toggle" aria-label="Open Grok assistant" aria-expanded="false" aria-controls="assistant-window"><?= icon('chat') ?><span>Ask Grok</span></button>
 <?php endif; ?>
-<section class="assistant-widget assistant-panel <?= $chatPage?'assistant-fullpage':'' ?>" id="assistant-window" role="dialog" aria-labelledby="assistant-title" <?= $chatPage?'':'hidden' ?>>
-  <div class="assistant-widget-header"><span class="assistant-avatar"><?= icon('chat') ?></span><div class="assistant-heading"><b id="assistant-title">Fluence assistant</b><small><?= is_staff(current_user())?'Across all creators':'Your tracker' ?> <span>· Read only</span></small></div><a class="iconbtn" href="assistant.php" aria-label="Open all chats" title="All chats"><?= icon('layers') ?></a><button type="button" class="iconbtn" id="assistant-new" aria-label="Start a new chat" title="New chat"><?= icon('plus') ?></button><?php if(!$chatPage):?><button type="button" class="iconbtn" id="assistant-close" aria-label="Close assistant"><?= icon('x') ?></button><?php endif; ?></div>
+<section class="assistant-widget assistant-panel <?= $chatPage?'assistant-fullpage':'' ?>" id="assistant-window" role="<?= $chatPage?'region':'dialog' ?>" aria-labelledby="assistant-title" <?= $chatPage?'':'hidden' ?>>
+  <div class="assistant-widget-header"><?php if(!$chatPage):?><button type="button" class="iconbtn" id="assistant-back" aria-label="Back to chats" hidden><?= icon('back') ?></button><?php endif;?><span class="assistant-avatar"><?= icon('chat') ?></span><div class="assistant-heading"><b id="assistant-title">Fluence assistant</b><small><?= is_staff(current_user())?'Across all creators':'Your tracker' ?> <span>· Read only</span></small></div><?php if(!$chatPage):?><a class="iconbtn" href="assistant.php" aria-label="Open all chats" title="All chats"><?= icon('layers') ?></a><?php endif;?><button type="button" class="iconbtn" id="assistant-new" aria-label="Start a new chat" title="New chat"><?= icon('plus') ?></button><?php if(!$chatPage):?><button type="button" class="iconbtn" id="assistant-close" aria-label="Close assistant"><?= icon('x') ?></button><?php endif; ?></div>
+<?php if(!$chatPage):?><div id="assistant-inbox" class="assistant-inbox"><div class="assistant-inbox-intro"><h3>Your conversations</h3><p>Pick up where you left off or start something new.</p></div><label class="assistant-search"><span class="assistant-sr">Search chats</span><input type="search" id="assistant-search" placeholder="Search conversations…"></label><div id="assistant-chat-list"></div><a class="assistant-inbox-footer" href="assistant.php">Open full chat workspace <?= icon('arrow') ?></a></div><?php endif;?>
   <form id="assistant-form">
   <div id="assistant-current-title" class="assistant-current-title"></div>
   <div id="assistant-messages" class="assistant-messages" role="log" aria-label="Conversation" aria-live="polite"></div>
