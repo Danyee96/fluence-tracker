@@ -36,6 +36,7 @@ function page_header(string $title, string $active = '', bool $bare = false): vo
         <a href="users.php" class="<?= $active === 'users' ? 'on' : '' ?>"><?= icon('users') ?><span>Users</span></a>
       <?php endif; ?>
 
+      <?php if(assistant_local()):?><a href="assistant.php" class="<?= $active==='assistant'?'on':'' ?>"><?= icon('chat') ?><span>Chats</span></a><?php endif;?>
     </nav>
     <div class="me">
       <a class="me-link <?= $active === 'account' ? 'on' : '' ?>" href="account.php" title="Your account">
@@ -61,17 +62,20 @@ function page_footer(array $scripts = []): void
     $v = FL_VERSION;
     ?>
 </div></main>
-<?php if (assistant_local() && current_user()): $scripts[]='assistant.js'; ?>
+<?php if (assistant_local() && current_user()): $scripts[]='assistant-format.js';$scripts[]='assistant.js';$chatPage=basename($_SERVER['SCRIPT_NAME']??'')==='assistant.php'; ?>
+<?php if($chatPage):?><div class="assistant-workspace"><aside class="assistant-chat-sidebar"><div><h2>Your chats</h2><button class="btn sm" type="button" id="assistant-sidebar-new"><?= icon('plus') ?>New chat</button></div><p class="hint">Saved in this browser tab</p><div id="assistant-chat-list"></div></aside><?php else: ?>
 <button type="button" class="assistant-launcher" id="assistant-toggle" aria-label="Open Grok assistant" aria-expanded="false" aria-controls="assistant-window"><?= icon('chat') ?><span>Ask Grok</span></button>
-<section class="assistant-widget assistant-panel" id="assistant-window" role="dialog" aria-labelledby="assistant-title" hidden>
-  <div class="assistant-widget-header"><span class="assistant-avatar"><?= icon('chat') ?></span><div class="assistant-heading"><b id="assistant-title">Fluence assistant</b><small><?= is_staff(current_user())?'Across all creators':'Your tracker' ?> <span>· Read only</span></small></div><button type="button" class="iconbtn" id="assistant-new" aria-label="Start a new chat" title="New chat"><?= icon('plus') ?></button><button type="button" class="iconbtn" id="assistant-close" aria-label="Close assistant"><?= icon('x') ?></button></div>
+<?php endif; ?>
+<section class="assistant-widget assistant-panel <?= $chatPage?'assistant-fullpage':'' ?>" id="assistant-window" role="dialog" aria-labelledby="assistant-title" <?= $chatPage?'':'hidden' ?>>
+  <div class="assistant-widget-header"><span class="assistant-avatar"><?= icon('chat') ?></span><div class="assistant-heading"><b id="assistant-title">Fluence assistant</b><small><?= is_staff(current_user())?'Across all creators':'Your tracker' ?> <span>· Read only</span></small></div><a class="iconbtn" href="assistant.php" aria-label="Open all chats" title="All chats"><?= icon('layers') ?></a><button type="button" class="iconbtn" id="assistant-new" aria-label="Start a new chat" title="New chat"><?= icon('plus') ?></button><?php if(!$chatPage):?><button type="button" class="iconbtn" id="assistant-close" aria-label="Close assistant"><?= icon('x') ?></button><?php endif; ?></div>
   <form id="assistant-form">
-  <label class="assistant-chat-picker">Chat<select id="assistant-chats" aria-label="Choose a chat"></select></label>
+  <div id="assistant-current-title" class="assistant-current-title"></div>
   <div id="assistant-messages" class="assistant-messages" role="log" aria-label="Conversation" aria-live="polite"></div>
   <div class="assistant-composer"><label class="assistant-sr" for="assistant-question">Your question</label><textarea id="assistant-question" rows="1" maxlength="2000" placeholder="Ask Fluence anything…" required></textarea></div>
   <p class="hint" id="assistant-status" role="status"></p><p class="assistant-footnote">Enter to send · Shift+Enter for a new line</p></form>
   <template id="assistant-welcome"><div class="assistant-welcome"><span class="assistant-welcome-icon"><?= icon('chat') ?></span><h3>A clearer view of your progress.</h3><p>Ask about goals, outstanding tasks or your next steps.</p><div class="assistant-suggestions"><button type="button" data-prompt="What should we focus on next?">What needs attention? <?= icon('arrow') ?></button><button type="button" data-prompt="Summarize progress toward our goals.">Summarize goal progress <?= icon('arrow') ?></button><button type="button" data-prompt="What action items came out of our latest meetings?">Latest meeting actions <?= icon('arrow') ?></button></div><small>Relevant tracker records are shared with xAI when you send a question.</small></div></template>
 </section>
+<?php if($chatPage):?></div><?php endif; ?>
 <?php endif; ?>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 <script>window.FL_ICONS = <?= js_json(icon_paths()) ?>;</script>
