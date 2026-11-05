@@ -44,7 +44,7 @@ function get_statuses(int $cid, string $month): array
     $map = [];
     foreach ($rows as $r) $map[$r['milestone_key']] = $r['status'];
     $values = tracker_values($cid, $month);
-    foreach (phases($cid) as $phase) foreach (task_leaves($phase['miles']) as $item) {
+    foreach (phases($cid) as $phase) foreach (task_progress_items($phase['miles']) as $item) {
         $key = $item['key'];
         $map[$key] = item_progress($item, $values[$key]['value'] ?? null, $map[$key] ?? 'todo')['status'];
     }
@@ -73,7 +73,7 @@ function compute_progress(array $map, ?int $cid = null, ?array $values = null): 
     $out = []; $total = 0; $sum = 0.0; $doneTotal = 0; $current = null; $anyStarted = false;
     foreach (phases($cid) as $i => $phase) {
         $done = 0; $active = 0; $points = 0.0; $started = false;
-        foreach (task_leaves($phase['miles']) as $item) {
+        foreach (task_progress_items($phase['miles']) as $item) {
             $key = $item['key'];
             $p = item_progress($item, $values[$key]['value'] ?? null, $map[$key] ?? 'todo');
             if ($p['status'] === 'sk') continue;

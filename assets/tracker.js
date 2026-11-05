@@ -47,8 +47,9 @@
   }
   function displayedPct(progress) { return progress.status === 'cp' ? 100 : Math.min(99, Math.round(progress.percent)); }
   function resultState(item) { return itemProgress(item, drafts[item.key] || F.values[item.key], F.statuses[item.key] || (F.values[item.key] || {}).status); }
+  function hasMetric(item) { return (item.type === 'number' || item.type === 'money') && +item.target > 0; }
   function leaves(nodes) {
-    return nodes.reduce(function (all, node) { return all.concat(node.children && node.children.length ? leaves(node.children) : [node]); }, []);
+    return nodes.reduce(function (all, node) { return all.concat(node.children && node.children.length && !hasMetric(node) ? leaves(node.children) : [node]); }, []);
   }
   function aggregate(nodes) {
     var active = 0, done = 0, sum = 0, started = false;
@@ -62,7 +63,7 @@
     var complete = nodes.length && (!active || done === active);
     return {status:complete ? 'cp' : started ? 'ip' : 'todo', percent:active ? sum / active : complete ? 100 : 0, done:done, active:active};
   }
-  function nodeProgress(node) { return node.children && node.children.length ? aggregate(node.children) : resultState(node); }
+  function nodeProgress(node) { return node.children && node.children.length && !hasMetric(node) ? aggregate(node.children) : resultState(node); }
   function nodeStatus(node) { return nodeProgress(node).status; }
   function phaseStatus(p) { var status = aggregate(p.miles).status; return status === 'todo' ? 'ns' : status; }
   function phasePct(p) { return displayedPct(aggregate(p.miles)); }
@@ -124,7 +125,7 @@
       if (res.ok) {
         F.values[key] = {value:res.value, status:res.status}; F.statuses[key] = res.status;
         if (drafts[key] && drafts[key].value === value) delete drafts[key];
-        if (!F.goalDefinitions.some(function (g) { return g.key === key; })) { F.inheritedFrom = null; renderInherit(); }
+        if (F.goalDefinitions.some(function (g) { return g.key === key; })) { renderGoals(); } else { F.inheritedFrom = null; renderInherit(); }
         resultMessage(key, drafts[key] ? 'Saving…' : '');
         paintProgress();
       } else resultMessage(key, res.error || 'Not saved. Please retry.', true);
@@ -245,19 +246,21 @@
 
   function renderEntry() {
     var box = document.getElementById('entry'), e = F.entry || {};
+    function fieldLabel(f) { var goal=F.goalDefinitions.find(function(g){return g.source===f.k;}); return goal ? goal.title : f.label; }
     box.innerHTML = FIELDS.map(function (f, idx) {
       var v = e[f.k], pv = F.prev ? F.prev[f.k] : null;
       var hint = F.prev && pv != null && pv !== '' ? '<small>' + esc(F.prev.name.slice(0, 3)) + ': ' + esc(f.hintFmt(pv)) + '</small>' : '<small>&nbsp;</small>';
-      return '<label class="fld fld-' + f.k + (F.canEdit ? '' : ' ro') + '"><span>' + esc(f.label) + '</span><span class="adorn">' +
+      return '<label class="fld fld-' + f.k + (F.canEdit ? '' : ' ro') + '"><span>' + esc(fieldLabel(f)) + '</span><span class="adorn">' +
         (f.pre ? '<em>' + f.pre + '</em>' : '') +
         '<input data-k="' + f.k + '" ' + (f.date ? 'type="date"' : 'type="text" inputmode="decimal" placeholder="—"') +
         ' value="' + esc(v == null ? '' : (f.date ? v : (f.k === 'spon' || f.k === 'info') && !F.entry ? '' : v)) + '"' + (F.canEdit ? '' : ' disabled') + '>' +
         (f.post ? '<em>' + f.post + '</em>' : '') + '</span>' + hint + '</label>' +
         (idx === 2 ? '<div class="fld total"><span>Total revenue</span><b id="totrev">' + (F.entry ? '$' + U.num(totalRev(F.entry)) : '—') + '</b><small>sponsor + info</small></div>' : '');
-    }).join('');
+    }).join('') + '<div class="monthly-custom-goals">' + F.goalDefinitions.filter(function(g){return !g.source || g.source==="manual";}).map(function(g){return '<div class="monthly-goal"><div class="monthly-goal-heading"><b>'+esc(g.title)+'</b><span>Target: '+valueFormat(g.type,g.target)+'</span></div>'+(F.canRespond?resultForm(g,'goal'):'<div class="goal-result">'+valueFormat(g.type,goalCurrent(g))+'</div>')+'</div>';}).join('') + '</div>';
+    bindResults(box);
 
     if (!F.canEdit) return;
-    box.querySelectorAll('input').forEach(function (inp) {
+    box.querySelectorAll('input[data-k]').forEach(function (inp) {
       inp.addEventListener('input', function () {
         if (!F.entry) F.entry = { spon: 0, info: 0, subs: null, streams: null, meeting: null };
         var k = this.dataset.k, raw = this.value.trim();
@@ -308,8 +311,9 @@
       return '<li class="task-node ' + (parentNumber ? 'task-child' : 'task-root') + ' st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><details class="task-details"><summary class="task-heading"><span class="task-number" aria-label="' + level + ' ' + number + '">' + number + '</span><span class="task-title"><span class="task-level">' + level + (children.length ? ' · ' + children.length + ' subtask' + (children.length === 1 ? '' : 's') : '') + '</span><h4>' + esc(m.t) + '</h4></span><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span><span class="task-open-label"><span class="task-label-closed">Expand</span><span class="task-label-open">Collapse</span> ' + I('chevron') + '</span></summary>' +
         '<div class="task-progress-track"><i class="task-progress-fill" style="width:' + pct + '%"></i></div>' +
         (m.description ? '<p class="task-description">' + esc(m.description) + '</p>' : '') +
-        (leaf && (m.type === 'number' || m.type === 'money') && m.target !== '' && m.target != null ? '<div class="goal-target">Target: ' + valueFormat(m.type, m.target) + '</div>' : '') +
-        (leaf ? (F.canRespond ? resultForm(m, 'task') : (m.type && m.type !== 'check' ? '<div class="goal-result">' + valueFormat(m.type, saved.value) + '</div>' : '')) : renderTasks(children, number)) +
+        ((leaf || hasMetric(m)) && (m.type === 'number' || m.type === 'money') && m.target !== '' && m.target != null ? '<div class="goal-target">Target: ' + valueFormat(m.type, m.target) + '</div>' : '') +
+        ((leaf || hasMetric(m)) ? (F.canRespond ? resultForm(m, 'task') : (m.type && m.type !== 'check' ? '<div class="goal-result">' + valueFormat(m.type, saved.value) + '</div>' : '')) : '') +
+        (!leaf ? renderTasks(children, number) : '') +
         '<div class="notes task-detail-section"><label>' + (parentNumber ? 'Subtask notes' : 'Step notes') + ' · ' + esc(F.monthLabel) + '</label>' + notes + '</div></details></li>';
     }).join('') + '</ul>';
   }

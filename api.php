@@ -33,7 +33,7 @@ try {
             $item = plan_item($cid, $key);
             if (!$month || !$item) $bad('This item no longer exists. Refresh the tracker.');
             if ($item['kind'] === 'goal' && ($item['source'] ?? 'manual') !== 'manual') $bad('Update this goal through monthly numbers.');
-            if ($item['kind'] === 'task' && !empty($item['children'])) $bad('Update the subtasks to change this task’s progress.');
+            if ($item['kind'] === 'task' && !empty($item['children']) && !task_has_metric($item)) $bad('Update the subtasks to change this task’s progress.');
             try { $value = typed_value($item['type'] ?? 'check', $in['value'] ?? ''); }
             catch (InvalidArgumentException $e) { $bad($e->getMessage()); }
             $progress = item_progress($item, $value);

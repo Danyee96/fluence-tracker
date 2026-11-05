@@ -180,3 +180,18 @@ function task_note_key(string $key): string
 {
     return 'task_' . sha1($key);
 }
+
+/** A numeric target on a parent measures its outcome independently of its checklist. */
+function task_has_metric(array $item): bool
+{
+    return in_array($item['type'] ?? 'check', ['number','money'], true) && (float)($item['target'] ?? 0)>0;
+}
+function task_progress_items(array $nodes): array
+{
+    $out=[];
+    foreach($nodes as $node) {
+        if (!empty($node['children']) && !task_has_metric($node)) array_push($out,...task_progress_items($node['children']));
+        else $out[]=$node;
+    }
+    return $out;
+}

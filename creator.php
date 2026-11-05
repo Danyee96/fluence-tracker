@@ -96,7 +96,7 @@ page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
 
 <nav class="subnav" id="subnav">
   <div class="subnav-in">
-    <a href="#overview" class="on">Overview</a>
+    <a href="#<?= is_staff($u)?'alltime':'overview' ?>" class="on">Overview</a>
     <a href="#numbers">Numbers</a>
     <a href="#path">Path</a>
     <a href="#feedback">Feedback<span class="cnt" id="fbcount"></span></a>
@@ -113,6 +113,7 @@ page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
   <div class="note-bar"><?= icon('eye') ?><span>View only — <?= $u['role'] === 'admin' ? 'monthly numbers and notes are view-only. You can manage the plan, update task results, and leave feedback.' : 'you can\'t edit this tracker.' ?></span></div>
 <?php endif; ?>
 
+<?php if (is_staff($u)) creator_overview_section($cid); ?>
 <section class="sec" id="social"><div class="section-h"><h2>Social channels</h2><a class="btn sm" href="social.php?id=<?= $cid ?>">Manage channels</a></div>
 <div class="social-grid" id="social-channels" data-cid="<?= $cid ?>" data-manage="0"><?php $channels = social_accounts($cid); foreach ($channels as $channel) social_card($channel); if (!$channels): ?><div class="empty small">Link your public channels to track followers and subscribers automatically.</div><?php endif; ?></div></section>
 <section id="overview" class="sec">

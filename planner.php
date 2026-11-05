@@ -82,6 +82,7 @@ function plan_form(array $plan, string $section, string $parent = '', ?array $it
         <label>Value type<select name="type"><?php foreach (PLAN_TYPES as $key => $label): ?><option value="<?= $key ?>" <?= ($item['type'] ?? 'check') === $key ? 'selected' : '' ?>><?= e($label) ?></option><?php endforeach; ?></select></label>
         <label>Target / expected result <small>(optional)</small><input name="target" value="<?= e($item['target'] ?? '') ?>" maxlength="3000"></label>
       </div>
+      <?php if ($section === 'tasks' && !empty($item['children'])): ?><p class="hint">Choose Number or Money and a positive target to track this step’s own result alongside its subtasks. Its result will determine the step’s percentage.</p><?php endif; ?>
       <label>Instructions <small>(optional)</small><textarea name="description" rows="2" maxlength="3000"><?= e($item['description'] ?? '') ?></textarea></label>
       <?php if (!empty($item['source']) && $item['source'] !== 'manual'): ?><p class="hint">Result comes from monthly numbers.</p><?php endif; ?>
       <?php endif; ?>

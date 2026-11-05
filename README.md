@@ -61,7 +61,7 @@ Open http://localhost:8000/install.php. Data is saved to `data/fluence.sqlite`.
 
 Staff can open a creator tracker and select **Edit destinations & path**. Both Admins and Super Admins can add, edit, reorder, and remove goals, phases, tasks, and nested subtasks. Each creator has a separate plan. Types include checkbox, text, money/budget, and number, with optional targets and instructions.
 
-Creators enter results and changes save automatically. Numeric and money task percentages come from result ÷ target: zero is To do, partial values are In progress, and reaching the target is Complete. Checkbox tasks use a completion toggle. Text tasks complete when the expected answer matches (case-insensitive), or when filled if no expected answer is set. Numeric tasks without a positive target remain In progress until an admin adds a target. Parent tasks summarize the smallest subtasks, which drive phase and dashboard progress using partial percentages as well as completed tasks. Goal results are monthly; task status and evidence carry forward. Existing monthly-number goals remain linked to monthly entries. Only staff can change targets or plan structure.
+Creators enter results and changes save automatically. Numeric and money task percentages come from result ÷ target: zero is To do, partial values are In progress, and reaching the target is Complete. Checkbox tasks use a completion toggle. Text tasks complete whenever a nonempty result is entered. Numeric tasks without a positive target remain In progress until an admin adds a target. Parents with a positive numeric or money target use their own entered result to drive progress; their subtasks remain independently editable. Other parent tasks summarize their subtasks. Goal results are monthly; task status and evidence carry forward. Existing monthly-number goals remain linked to monthly entries. Only staff can change targets or plan structure.
 
 Definitions apply across months. Removing an item hides it from the current plan while retaining saved history in the database. Existing roadmap keys, notes, targets, and progress are preserved when customizing a creator for the first time. Database schema v3 adds two tables automatically, without deleting existing data.
 
@@ -99,7 +99,7 @@ Tests (no network requests or production data changes): `php tests/social.php`; 
 
 ### Compact path view
 
-Phases start collapsed, showing their title, overall progress, and a horizontal row of immediate task percentages. **Expand details** reveals task inputs, nested subtasks, instructions, and monthly notes. Selecting a task in the summary expands and focuses its detail. Numeric progress is calculated on both client and server; a submitted status cannot override the value. Phase, parent, overall, dashboard, and CSV percentages use the same smallest-task averages. Values just below a target never display 100% prematurely. Previously saved checkbox completion is retained, and earlier numeric statuses are recalculated from saved evidence.
+Phases start collapsed, showing their title, overall progress, and a horizontal row of immediate task percentages. **Expand details** reveals task inputs, nested subtasks, instructions, and monthly notes. Selecting a task in the summary expands and focuses its detail. Numeric progress is calculated on both client and server; a submitted status cannot override the value. Phase, overall, dashboard, and CSV percentages average outcome tasks; numeric parents with targets count once in place of their descendants. Values just below a target never display 100% prematurely. Previously saved checkbox completion is retained, and earlier numeric statuses are recalculated from saved evidence.
 
 ## Meeting logs
 
@@ -157,3 +157,9 @@ In ignored `config.local.php`, add a top-level entry alongside the existing data
 ```
 
 Click **Ask Grok** after logging in at `http://localhost:8000`. Old `assistant.php` bookmarks redirect to the global widget. PHP cURL and paid API access are required for real answers. Tracker records are sent to xAI only when a question is submitted. Requests use the Responses API with `store=false`, a bounded context and output, a 55-second timeout and a five-second session throttle. This is a local preview: both page and endpoint require an enabled flag **and a loopback client IP**, ignoring Host/forwarded headers. Do not enable it behind a production reverse proxy that presents remote traffic as loopback. Deploying the source alone does not enable the feature; production config remains untouched. Test: `php tests/assistant.php`.
+
+## Overall creator overview and editable numbers
+
+Staff see a cross-month **Creator overview** on every creator tracker: all-time recorded revenue, latest recorded audience, current Path progress, meeting count/date and the latest saved result against each Destination target. It does not depend on the month selector. Missing months are not estimated; monthly revenue goals use their latest month’s revenue rather than the all-time total.
+
+Numbers uses admin-defined labels for linked audience and income-stream goals, and also includes editable result fields for every manual Destination goal. Goal targets remain editable in the plan editor. For parent steps such as Halloween Sale, configure Number and a target of 10 in the plan editor, then enter 6 in the tracker to show 60%, while keeping the promotional subtasks. Tests: `php tests/parent-metrics.php` and `php tests/creator-overview.php`.
