@@ -195,3 +195,5 @@ Assistant messages render a constrained Markdown subset (headings, emphasis, lis
 ## Popup chat inbox
 
 Opening the floating assistant shows a searchable conversation inbox. Selecting a conversation opens it in the popup; Back returns to the inbox, and Escape returns to the inbox before closing. The header + starts a new chat. Reopening the popup always shows the chat list. The inbox links to the full Chats workspace; both surfaces share conversation history and drafts. Conversations can be deleted from this browser tab with confirmation. Sending a message moves that chat to the top. The full workspace uses a compact heading and bounded conversation panel so its composer stays visible on desktop.
+
+Chat rows also have a **Rename** pencil action in both the popup inbox and Chats workspace. Names can be edited inline (up to 60 characters), saved with Enter or Save, and cancelled with Escape or Cancel. Custom names stay in the same per-user browser-tab storage and are preserved when sending more messages.
