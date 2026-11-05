@@ -1,7 +1,7 @@
 <?php
 defined('FL') or exit;
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 
 /** Full table definitions (safe to re-run: CREATE ... IF NOT EXISTS). */
 function schema_statements(bool $sqlite): array

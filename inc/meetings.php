@@ -77,7 +77,7 @@ function meeting_post(array $u, int $cid, string $month): ?array
             flash('Meeting removed.');
         } else throw new InvalidArgumentException('Unknown meeting action.');
         log_activity($cid,(int)$u['id'],'meeting',$month,$action === 'delete' ? 'removed a meeting log' : 'logged a meeting on ' . $_POST['meeting_date']);
-        redirect('creator.php?' . http_build_query(['id'=>$cid,'m'=>$month]) . '#meetings');
+        redirect('creator.php?' . http_build_query(['id'=>$cid,'view'=>'monthly','m'=>$month]) . '#meetings');
     } catch (InvalidArgumentException $e) {
         http_response_code(422);
         return ['error'=>$e->getMessage(),'fields'=>$action === 'save' ? $_POST : []];
@@ -86,7 +86,7 @@ function meeting_post(array $u, int $cid, string $month): ?array
 
 function meeting_section(array $u, int $cid, string $month, ?array $failed = null): void
 {
-    $base = ['id'=>$cid,'m'=>$month];
+    $base = ['id'=>$cid,'view'=>'monthly','m'=>$month];
     $editing = null; $editError = '';
     if (!empty($_GET['meeting_edit'])) {
         $editing = q('SELECT * FROM creator_meetings WHERE id=? AND creator_id=?', [(int)$_GET['meeting_edit'],$cid])->fetch() ?: null;

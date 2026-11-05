@@ -9,6 +9,7 @@ function plan_schema(bool $sqlite): array
     $text = $sqlite ? 'TEXT' : 'LONGTEXT';
     $engine = $sqlite ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
     return [
+        "CREATE TABLE IF NOT EXISTS creator_boards (creator_id $id NOT NULL, scope VARCHAR(20) NOT NULL, definition $text NOT NULL, revision INTEGER NOT NULL DEFAULT 1, PRIMARY KEY(creator_id,scope), FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE)$engine",
         "CREATE TABLE IF NOT EXISTS creator_plans (creator_id $id PRIMARY KEY, definition $text NOT NULL, revision INTEGER NOT NULL DEFAULT 1, FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE)$engine",
         "CREATE TABLE IF NOT EXISTS tracker_values (creator_id $id NOT NULL, month CHAR(7) NOT NULL, item_key VARCHAR(60) NOT NULL, value TEXT NULL, status VARCHAR(4) NOT NULL DEFAULT 'todo', PRIMARY KEY (creator_id, month, item_key), FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE)$engine",
     ];
@@ -80,10 +81,11 @@ function tracker_values(int $cid, string $month): array
 {
     // Goal results are monthly. Task evidence carries forward independently.
     $rows = q('SELECT item_key, value, status, month FROM tracker_values WHERE creator_id=? AND month<=? ORDER BY month', [$cid, $month])->fetchAll();
-    $goalKeys = array_column(creator_plan($cid)['goals'], 'key');
+    $definitions=function_exists('monthly_goal_definitions')?monthly_goal_definitions($cid,$month):creator_plan($cid)['goals'];
+    $goalKeys = array_column($definitions, 'key');
     $out = [];
     foreach ($rows as $row) {
-        if (in_array($row['item_key'], $goalKeys, true) && $row['month'] !== $month) continue;
+        if ((in_array($row['item_key'], $goalKeys, true) || str_starts_with($row['item_key'],'board_')) && $row['month'] !== $month) continue;
         $out[$row['item_key']] = ['value' => $row['value'], 'status' => $row['status']];
     }
     return $out;
@@ -155,7 +157,7 @@ function creator_goal_progress(int $cid, string $month, ?array $entry = null, ?a
 {
     $values ??= tracker_values($cid, $month);
     $goals = [];
-    foreach (creator_plan($cid)['goals'] as $goal) {
+    foreach ((function_exists('monthly_goal_definitions')?monthly_goal_definitions($cid,$month):creator_plan($cid)['goals']) as $goal) {
         $source = $goal['source'] ?? 'manual';
         $saved = $values[$goal['key']] ?? [];
         $value = match ($source) {

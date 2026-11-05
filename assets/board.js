@@ -1,0 +1,1 @@
+(function(){var box=document.getElementById('board-goals'),n=box.children.length;document.getElementById('board-add').onclick=function(){box.insertAdjacentHTML('beforeend',document.getElementById('board-template').innerHTML.replace(/__INDEX__/g,String(n++)));};box.onclick=function(e){if(e.target.closest('[data-remove-goal]'))e.target.closest('.board-goal-row').remove();};})();

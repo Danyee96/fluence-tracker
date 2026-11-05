@@ -163,3 +163,11 @@ Click **Ask Grok** after logging in at `http://localhost:8000`. Old `assistant.p
 Staff see a cross-month **Creator overview** on every creator tracker: all-time recorded revenue, latest recorded audience, current Path progress, meeting count/date and the latest saved result against each Destination target. It does not depend on the month selector. Missing months are not estimated; monthly revenue goals use their latest month’s revenue rather than the all-time total.
 
 Numbers uses admin-defined labels for linked audience and income-stream goals, and also includes editable result fields for every manual Destination goal. Goal targets remain editable in the plan editor. For parent steps such as Halloween Sale, configure Number and a target of 10 in the plan editor, then enter 6 in the tracker to show 60%, while keeping the promotional subtasks. Tests: `php tests/parent-metrics.php` and `php tests/creator-overview.php`.
+
+## Overall vision and monthly execution boards
+
+Creator pages open on **Overview**, for admins and creators. This view has no month selector: its vision, goals, targets and current results are stored independently of monthly entries. It shows the full Path, all-time revenue, latest audience, meetings and social channels. Admins use **Edit overall vision** to maintain the macro goals and their results. No monthly targets are silently copied into the overall vision.
+
+**Monthly view** has the month selector and existing tracker tools. **Plan this month** sets a focus statement, that month’s goal targets, and the main Path steps being worked on (including their descendants). Monthly goal results are entered in Numbers. If a month has no explicit board, existing goal definitions and the full Path remain visible for compatibility; saving a monthly board makes its targets and selected work independent. Macro goals never use monthly result values. Path evidence still carries forward because completing a project step is lasting progress.
+
+Schema v6 adds `creator_boards` without deleting existing plans or results. Board writes check revision numbers. Tests: `php tests/boards.php`, `php tests/creator-overview.php`; browser checks cover macro/monthly separation, monthly focus, 60% result persistence and responsive views.

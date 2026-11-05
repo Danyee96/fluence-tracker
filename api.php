@@ -31,6 +31,7 @@ try {
         case 'item_value':
             $key = (string)($in['key'] ?? '');
             $item = plan_item($cid, $key);
+            if($month)foreach(monthly_goal_definitions($cid,$month) as $goal)if($goal['key']===$key)$item=$goal+['kind'=>'goal'];
             if (!$month || !$item) $bad('This item no longer exists. Refresh the tracker.');
             if ($item['kind'] === 'goal' && ($item['source'] ?? 'manual') !== 'manual') $bad('Update this goal through monthly numbers.');
             if ($item['kind'] === 'task' && !empty($item['children']) && !task_has_metric($item)) $bad('Update the subtasks to change this task’s progress.');

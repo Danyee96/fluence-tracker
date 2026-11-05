@@ -16,6 +16,8 @@ $month   = valid_month($_GET['m'] ?? '') ?? date('Y-m');
 $canEdit = can_edit_creator($u, $cid);
 $isSelf  = (int)$u['id'] === $cid;
 $plan = creator_plan($cid);
+$view=($_GET['view']??'overview')==='monthly'?'monthly':'overview';
+$monthBoard=creator_board($cid,$month);
 $meetingError = meeting_post($u, $cid, $month);
 
 [$statuses, $inheritedFrom] = get_statuses($cid, $month);
@@ -40,6 +42,7 @@ $history = array_map(fn($r) => entry_js($r) + ['m' => month_label($r['month'], t
 
 $programMonth = $creator['start_month'] ? months_between($creator['start_month'], $month) + 1 : null;
 
+$monthlyPhases=monthly_path($plan['phases'],$monthBoard);
 $data = [
     'cid'           => $cid,
     'month'         => $month,
@@ -48,11 +51,11 @@ $data = [
     'canEdit'       => $canEdit,
     'me'            => ['id' => (int)$u['id'], 'role' => $u['role'], 'name' => $u['name']],
     'isSelf'        => $isSelf,
-    'phases'        => array_map(fn($p, $i) => array_replace($p, ['num' => 'PHASE ' . str_pad((string)($i + 1), 2, '0', STR_PAD_LEFT)]), $plan['phases'], array_keys($plan['phases'])),
+    'phases'        => array_map(fn($p) => array_replace($p, ['num' => 'PHASE ' . str_pad((string)(array_search($p['key'],array_column($plan['phases'],'key'),true)+1), 2, '0', STR_PAD_LEFT)]), $monthlyPhases),
     'statuses'      => (object)$statuses,
     'inheritedFrom' => $inheritedFrom ? month_label($inheritedFrom) : null,
     'notes'         => (object)$notes,
-    'goalDefinitions' => $plan['goals'],
+    'goalDefinitions' => monthly_goal_definitions($cid,$month),
     'values' => (object)tracker_values($cid, $month),
     'canRespond' => $canEdit || is_staff($u),
     'entry'         => entry_js($entryRow),
@@ -88,15 +91,20 @@ page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
         <?php if ($programMonth && $programMonth > 0): ?><span class="pm">Month <?= (int)$programMonth ?> of program</span><?php endif; ?>
         <?php if (!(int)$creator['is_active']): ?><span class="tag dis">Disabled</span><?php endif; ?>
       </div>
-      <?php month_nav($month, $isSelf ? [] : ['id' => $cid]); ?>
+      <?php if($view==='monthly'):month_nav($month, ['view'=>'monthly']+($isSelf?[]:['id'=>$cid]));else: ?><span class="badge">Overall creator vision</span><?php endif; ?>
     </div>
   </div>
-  <div class="hero-ring" id="ring"></div>
+  <div class="hero-ring" id="ring"><?php if($view==='overview'):$overall=creator_overview($cid);?><div><strong class="kpi-v"><?= $overall['progress']['overall'] ?>%</strong><span class="muted">Overall path progress</span></div><?php endif;?></div>
 </section>
 
+<nav class="creator-view-tabs" aria-label="Creator view"><a class="btn <?= $view==='overview'?'primary':'' ?>" href="creator.php?id=<?= $cid ?>">Overview</a><a class="btn <?= $view==='monthly'?'primary':'' ?>" href="creator.php?id=<?= $cid ?>&view=monthly&m=<?= e($month) ?>">Monthly view</a><?php if(is_staff($u)):?><a class="btn sm" href="board-edit.php?id=<?= $cid ?>&scope=<?= $view==='overview'?'overall':e($month) ?>"><?= $view==='overview'?'Edit overall vision':'Plan this month' ?></a><?php endif;?></nav>
+<?php if($view==='overview') {creator_overview_section($cid); ?>
+<section class="sec"><div class="section-h"><h2>Social channels</h2><a class="btn sm" href="social.php?id=<?= $cid ?>">Manage channels</a></div><div class="social-grid" id="social-channels" data-cid="<?= $cid ?>" data-manage="0"><?php $channels=social_accounts($cid);foreach($channels as $channel)social_card($channel);if(!$channels):?><p class="hint">No social channels linked yet.</p><?php endif;?></div></section>
+<?php page_footer(['social.js']);exit;} ?>
+<?php if($monthBoard['vision']):?><div class="note-bar info"><strong>This month’s focus</strong><span><?= e($monthBoard['vision']) ?></span></div><?php endif;?>
 <nav class="subnav" id="subnav">
   <div class="subnav-in">
-    <a href="#<?= is_staff($u)?'alltime':'overview' ?>" class="on">Overview</a>
+    <a href="#overview" class="on">Monthly goals</a>
     <a href="#numbers">Numbers</a>
     <a href="#path">Path</a>
     <a href="#feedback">Feedback<span class="cnt" id="fbcount"></span></a>
@@ -113,7 +121,7 @@ page_header($creator['name'], $isSelf ? 'tracker' : 'dashboard');
   <div class="note-bar"><?= icon('eye') ?><span>View only — <?= $u['role'] === 'admin' ? 'monthly numbers and notes are view-only. You can manage the plan, update task results, and leave feedback.' : 'you can\'t edit this tracker.' ?></span></div>
 <?php endif; ?>
 
-<?php if (is_staff($u)) creator_overview_section($cid); ?>
+
 <section class="sec" id="social"><div class="section-h"><h2>Social channels</h2><a class="btn sm" href="social.php?id=<?= $cid ?>">Manage channels</a></div>
 <div class="social-grid" id="social-channels" data-cid="<?= $cid ?>" data-manage="0"><?php $channels = social_accounts($cid); foreach ($channels as $channel) social_card($channel); if (!$channels): ?><div class="empty small">Link your public channels to track followers and subscribers automatically.</div><?php endif; ?></div></section>
 <section id="overview" class="sec">

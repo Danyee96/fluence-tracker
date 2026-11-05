@@ -114,6 +114,7 @@ page_header('Edit creator plan', 'dashboard');
 ?>
 <a class="back" href="creator.php?id=<?= $cid ?>&m=<?= e($month) ?>"><?= icon('back') ?>Back to tracker</a>
 <div class="dash-head"><div><p class="eyebrow">Creator plan</p><h1><?= e($creator['name']) ?></h1><p class="sub">Set their destinations and build their path. Creators enter results and mark tasks complete.</p></div></div>
+<div class="plan-actions"><a class="btn" href="board-edit.php?id=<?= $cid ?>&scope=overall">Edit overall vision</a><a class="btn" href="board-edit.php?id=<?= $cid ?>&scope=<?= e($month) ?>">Plan <?= e(month_label($month)) ?></a></div>
 <div class="note-bar info">Changes apply to this creator across all months. Progress is based on the smallest tasks; parent tasks summarize their subtasks.</div>
 <section class="sec" id="destinations"><div class="section-h"><h2>Destination goals</h2></div>
 <?php foreach ($plan['goals'] as $goal): ?>
