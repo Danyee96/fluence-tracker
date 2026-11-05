@@ -19,6 +19,9 @@ return [
     // Optional: keep the real token in config.local.php (Git-ignored).
     'apify' => ['token' => '', 'refresh_hours' => 24, 'max_run_cost_usd' => 0.05],
 
+    // Super Admin account settings can store a private key and enable live access.
+    'grok' => ['enabled'=>false, 'allow_remote'=>false, 'api_key'=>'', 'model'=>'grok-4.7'],
+
     'app_name' => 'Fluence',
     'timezone' => 'Asia/Karachi',
 

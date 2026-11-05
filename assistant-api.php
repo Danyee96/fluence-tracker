@@ -1,6 +1,6 @@
 <?php
 require __DIR__.'/inc/bootstrap.php';
-if (!assistant_local()) json_out(['ok'=>false,'error'=>'Local assistant is disabled.'],404);
+if (!assistant_local()) json_out(['ok'=>false,'error'=>'Assistant is disabled.'],404);
 if ($_SERVER['REQUEST_METHOD']!=='POST') json_out(['ok'=>false,'error'=>'POST required.'],405);
 $u=current_user();if (!$u) json_out(['ok'=>false,'error'=>'Please log in.'],401);
 if (!csrf_ok($_SERVER['HTTP_X_CSRF']??null)) json_out(['ok'=>false,'error'=>'Refresh the page and retry.'],419);

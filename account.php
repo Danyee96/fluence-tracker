@@ -5,6 +5,20 @@ $isC = $u['role'] === 'creator';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_check();
+    if(in_array($_POST['act']??'', ['grok_save','grok_test','grok_remove'],true)) {
+        if($u['role']!=='superadmin'){http_response_code(403);exit('Only Super Admins can manage Grok settings.');}
+        try {
+            if($_POST['act']==='grok_save'){grok_account_settings($u,$_POST);flash('Grok settings saved. The assistant is '.(isset($_POST['grok_enabled'])?'enabled on this website.':'disabled.'));}
+            elseif($_POST['act']==='grok_remove'){grok_write_settings(['api_key'=>'','enabled'=>false,'allow_remote'=>false,'model'=>$CONFIG['grok']['model']??'grok-4.7']);flash('Saved Grok key removed and assistant disabled.');}
+            else {
+                if(time()-(int)($_SESSION['grok_test_last']??0)<15)throw new RuntimeException('Please wait 15 seconds before testing again.');
+                $_SESSION['grok_test_last']=time();
+                assistant_reply(['purpose'=>'Connection test only; no creator records included.'],'Reply with the word Connected.');
+                flash('Connected to Grok successfully. The saved API key and model work.');
+            }
+        }catch(InvalidArgumentException|RuntimeException $e){flash($e->getMessage(),'err');}
+        redirect('account.php#grok-settings');
+    }
     if (($_POST['act'] ?? '') === 'profile') {
         $name = trim($_POST['name'] ?? '');
         if ($name === '') flash('Name can\'t be empty.', 'err');
@@ -65,4 +79,17 @@ page_header('Account', 'account');
 <section class="panel sec"><div class="panel-h"><h3><?= icon('layers') ?>Social channels</h3></div>
 <?php if ($isC): ?><p>Connect your public profiles to track followers, subscribers, and growth automatically.</p><a class="btn primary" href="social.php">Manage my channels</a>
 <?php else: ?><p>Manage social channels from each creator’s tracker.</p><?php if ($u['role'] === 'superadmin'): ?><a class="btn" href="social-setup.php">Social sync setup</a><?php endif; ?><?php endif; ?></section>
+<?php if($u['role']==='superadmin'): ?>
+<section class="panel sec" id="grok-settings"><div class="panel-h"><h3><?= icon('chat') ?>Grok assistant</h3></div>
+<p class="hint">Configure the assistant for everyone on this website. Admins can ask across creators; creators can only access their own data.</p>
+<p class="hint"><?= grok_effective_key()!==''?'API key configured. The saved key is never displayed.':'No API key configured yet.' ?></p>
+<form method="post" class="form" autocomplete="off"><?= csrf_field() ?><input type="hidden" name="act" value="grok_save">
+<label>xAI API key<input type="password" name="grok_key" autocomplete="new-password" placeholder="<?= grok_effective_key()!==''?'Leave blank to keep the current key':'xai-…' ?>" maxlength="512" spellcheck="false"></label>
+<label>Model<input name="grok_model" value="<?= e($CONFIG['grok']['model']??'grok-4.7') ?>" maxlength="100" required></label>
+<label class="check"><input type="checkbox" name="grok_enabled" <?= !empty($CONFIG['grok']['enabled'])?'checked':'' ?>>Enable assistant on this website</label>
+<p class="hint">Questions send authorized tracker data to xAI and use your API credits. Keep the key private. Blank leaves the current key unchanged.</p>
+<div><button class="btn primary" type="submit">Save Grok settings</button></div></form>
+<div class="plan-actions"><form method="post"><?= csrf_field() ?><input type="hidden" name="act" value="grok_test"><button class="btn" <?= grok_effective_key()===''?'disabled':'' ?>>Test saved connection</button></form><form method="post"><?= csrf_field() ?><input type="hidden" name="act" value="grok_remove"><button class="btn danger" <?= grok_effective_key()===''?'disabled':'' ?>>Remove saved key &amp; disable</button></form></div>
+<p class="hint">Connection tests make a small paid API request without creator records.</p>
+</section><?php endif; ?>
 <?php page_footer(); ?>

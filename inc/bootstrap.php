@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 define('FL', true);
-define('FL_VERSION', '3.30');
+define('FL_VERSION', '3.31');
 
 $cfgFile = __DIR__ . '/../config.php';
 if (!file_exists($cfgFile)) {
@@ -13,6 +13,8 @@ $localCfgFile = __DIR__ . '/../config.local.php';
 if (file_exists($localCfgFile)) {
     $CONFIG = array_replace_recursive($CONFIG, require $localCfgFile);
 }
+require __DIR__.'/grok-settings.php';
+$CONFIG['grok']=array_replace($CONFIG['grok']??[],grok_saved_settings());
 date_default_timezone_set($CONFIG['timezone'] ?? 'UTC');
 
 $https = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')

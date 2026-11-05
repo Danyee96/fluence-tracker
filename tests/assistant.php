@@ -18,3 +18,6 @@ check(str_contains(assistant_provider_error(400,json_encode(['error'=>'Incorrect
 check(str_contains(assistant_provider_error(401,json_encode(['error'=>['message'=>'Invalid API key']])),'xAI rejected'), 'Nested key error not explained');
 check(!str_contains(assistant_provider_error(400,json_encode(['error'=>'secret-value'])),'secret-value'), 'Raw provider response exposed');
 check(str_contains(assistant_provider_error(402,'{}'),'credits'), 'Billing error unclear');
+
+$CONFIG['grok']['allow_remote']=true;check(assistant_local(),'Explicit live enable unavailable');
+$CONFIG['grok']['enabled']=false;check(!assistant_local(),'Disabled assistant exposed remotely');
