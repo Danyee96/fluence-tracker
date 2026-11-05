@@ -188,6 +188,7 @@
   function renderGoals() {
     var box = document.getElementById('goals');
     box.innerHTML = F.goalDefinitions.map(function (g) {
+      var macro=(F.overallGoals||[]).find(function(item){return item.key===g.overall_key;});
       var manual = !g.source || g.source === 'manual', saved = drafts[g.key] || F.values[g.key] || {};
       var current = goalCurrent(g);
       var comparison = '';
@@ -205,6 +206,7 @@
       var progress = goalProgress(g), complete = progress.status === 'cp';
       pct = displayedPct(progress);
       return '<div class="kpi goal' + (complete ? ' done' : '') + '" data-goal="' + esc(g.key) + '"><div class="kpi-l">' + I(g.type === 'money' ? 'dollar' : 'target') + esc(g.title) + '</div>' +
+        (macro ? '<p class="goal-description">Contributes to: '+esc(macro.title)+'</p>' : '') +
         (g.description ? '<p class="goal-description">' + esc(g.description) + '</p>' : '') +
         '<div class="goal-result">' + (g.type === 'check' ? esc(LABEL[progress.status]) : valueFormat(g.type, current)) + '</div>' +
         comparison + (target !== '' && target != null ? '<div class="goal-target">Target: ' + valueFormat(g.type, target) + '</div>' : '') +

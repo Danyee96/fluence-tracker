@@ -15,7 +15,7 @@ function assistant_context(array $user, int $cid, string $month): array {
     foreach($notes as &$note)$note['item_title']=$labels[$note['phase_key']]??'Historical item';unset($note);
     return ['captured_at'=>date(DATE_ATOM),'month'=>$month,'creator'=>$creator,
         'tracker_url'=>'creator.php?id='.$cid.'&m='.$month,
-        'overall_board'=>creator_board($cid,'overall'),'monthly_focus'=>creator_board($cid,$month),'plan'=>$plan,'progress'=>compute_progress($statuses,$cid,tracker_values($cid,$month)),
+        'overall_board'=>creator_board($cid,'overall'),'overall_goal_progress'=>overall_goal_rollups($cid),'monthly_focus'=>creator_board($cid,$month),'plan'=>$plan,'progress'=>compute_progress($statuses,$cid,tracker_values($cid,$month)),
         'goals'=>creator_goal_progress($cid,$month,get_entry($cid,$month)),
         'results'=>tracker_values($cid,$month),
         'monthly_numbers'=>q('SELECT month,sponsor_rev,info_rev,subscribers,income_streams,last_meeting,updated_at FROM monthly_entries WHERE creator_id=? AND month<=? ORDER BY month DESC LIMIT 12',[$cid,$month])->fetchAll(),

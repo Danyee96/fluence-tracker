@@ -10,7 +10,7 @@ function creator_overview(int $cid): array {
     [$statuses]=get_statuses($cid,$month);
     $values=tracker_values($cid,$month);$goals=[];
     $board=function_exists('creator_board')?creator_board($cid,'overall'):['vision'=>'','goals'=>[]];
-    foreach($board['goals'] as $goal){$p=item_progress($goal,$goal['current']??null);$goals[]=$goal+['current'=>null,'as_of'=>null,'percent'=>progress_percent($p['percent'],$p['status']==='cp')];}
+    foreach(overall_goal_rollups($cid) as $goal){$p=item_progress($goal,$goal['current']??null);$goals[]=$goal+['current'=>null,'as_of'=>null,'percent'=>progress_percent($p['percent'],$p['status']==='cp')];}
     $meeting=q('SELECT COUNT(*) AS total,MAX(meeting_date) AS latest FROM creator_meetings WHERE creator_id=?',[$cid])->fetch();
     return ['vision'=>$board['vision'],'revenue'=>$sponsor+$info,'sponsor'=>$sponsor,'info'=>$info,'months'=>count($rows),'latest'=>$latest,'goals'=>$goals,'progress'=>compute_progress($statuses,$cid,$values),'meetings'=>$meeting];
 }
@@ -27,7 +27,8 @@ function creator_overview_section(int $cid): void {
 <div class="kpi"><span class="kpi-l">Meetings logged</span><strong class="kpi-v"><?= (int)$o['meetings']['total'] ?></strong><small>Latest: <?= e($o['meetings']['latest']??'Not logged') ?></small></div>
 </div><div class="overview-goals">
 <?php foreach($o['goals'] as $g): $format=static fn($v)=>$v===null||$v===''?'—':($g['type']==='money'?'$':'').(in_array($g['type'],['money','number'],true)?number_format((float)$v,$g['type']==='money'?2:0):($g['type']==='check'?($v==='1'?'Complete':'To do'):(string)$v)); ?>
-<div class="overview-goal"><b><?= e($g['title']) ?></b><span><?= e($format($g['current'])) ?> <small>/ <?= e($format($g['target']??null)) ?></small></span><div class="gbar"><i style="width:<?= $g['percent'] ?>%"></i></div><small><?= $g['percent'] ?>% of overall goal</small></div>
+<div class="overview-goal"><b><?= e($g['title']) ?></b><span><?= e($format($g['current'])) ?> <small>/ <?= e($format($g['target']??null)) ?></small></span><div class="gbar"><i style="width:<?= $g['percent'] ?>%"></i></div><small><?= $g['percent'] ?>% of overall goal · <?= e(['manual'=>'Manual result','sum'=>'Starting balance + monthly results','latest'=>'Latest monthly result'][$g['rollup']??'manual']) ?></small>
+<?php if(!empty($g['contributions'])):?><details class="goal-contributions"><summary><?= count($g['contributions']) ?> linked monthly goals</summary><?php foreach(array_reverse($g['contributions']) as $contribution):?><a href="creator.php?id=<?= $cid ?>&view=monthly&m=<?= e($contribution['month']) ?>"><span><?= e(month_label($contribution['month'])) ?> · <?= e($contribution['title']) ?></span><strong><?= e($format($contribution['current'])) ?> / <?= e($format($contribution['target'])) ?></strong></a><?php endforeach;?></details><?php endif;?></div>
 <?php endforeach; ?>
 <?php if(!$o['goals']):?><p class="hint">No overall goals set yet. An admin can add long-term goals using Edit overall vision.</p><?php endif;?>
 </div><div class="section-h"><h2>The full path</h2><span>Every phase · overall progress</span></div><div class="macro-phases">

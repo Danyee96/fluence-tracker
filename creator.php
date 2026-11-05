@@ -55,6 +55,7 @@ $data = [
     'statuses'      => (object)$statuses,
     'inheritedFrom' => $inheritedFrom ? month_label($inheritedFrom) : null,
     'notes'         => (object)$notes,
+    'overallGoals' => creator_board($cid,'overall')['goals'],
     'goalDefinitions' => monthly_goal_definitions($cid,$month),
     'values' => (object)tracker_values($cid, $month),
     'canRespond' => $canEdit || is_staff($u),
