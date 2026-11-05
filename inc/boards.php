@@ -31,7 +31,7 @@ function overall_goal_rollups(int $cid): array {
     $overall=creator_board($cid,'overall');$out=[];
     foreach($overall['goals'] as $goal)$out[$goal['key']]=$goal+['rollup'=>'manual','contributions'=>[]];
     $boards=q("SELECT scope,definition FROM creator_boards WHERE creator_id=? AND scope<>'overall' ORDER BY scope",[$cid])->fetchAll();
-    foreach($boards as $row){$month=valid_month($row['scope']);if(!$month)continue;$board=json_decode($row['definition'],true);$results=array_column(creator_goal_progress($cid,$month,get_entry($cid,$month)),null,'key');
+    foreach($boards as $row){$month=valid_month($row['scope']);if(!$month)continue;$board=json_decode($row['definition'],true);$linked=array_filter($board['goals']??[],static fn($g)=>isset($out[$g['overall_key']??'']));if(!$linked)continue;$results=array_column(creator_goal_progress($cid,$month,get_entry($cid,$month)),null,'key');
         foreach($board['goals']??[] as $monthly){$link=$monthly['overall_key']??'';if(!isset($out[$link])||$out[$link]['type']!==$monthly['type'])continue;$result=$results[$monthly['key']]??null;if(!$result)continue;$out[$link]['contributions'][]=['month'=>$month,'title'=>$monthly['title'],'current'=>$result['current'],'target'=>$monthly['target']??'','percent'=>$result['percent']];}
     }
     foreach($out as &$goal){$mode=$goal['rollup'];$current=$goal['current']??null;$has=false;$sum=0;foreach($goal['contributions'] as $c){if($c['current']===null||$c['current']==='')continue;$has=true;$sum+=(float)(is_numeric($c['current'])?$c['current']:0);if($mode==='latest')$current=$c['current'];}if($mode==='sum'&&$has)$current=(float)(($goal['current']??null)?:0)+$sum;$goal['baseline']=$goal['current']??null;$goal['current']=$current;}

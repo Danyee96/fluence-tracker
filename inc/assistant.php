@@ -43,6 +43,12 @@ function assistant_provider_error(int $status, string $raw): string {
     if ($status===0) return 'Could not connect to xAI. Check the internet connection and try again.';
     return 'Grok could not answer (HTTP '.$status.'). Check your xAI model access and try again.';
 }
+/** Use a latency-oriented reasoning level on supported models. */
+function assistant_generation_options(string $model): array {
+    $options=['max_output_tokens'=>2000];
+    if(preg_match('/^grok-4\.(?:3|5|6|7)(?:$|[-.])/',$model))$options['reasoning']=['effort'=>'low'];
+    return $options;
+}
 function assistant_reply(array $context, string $question, array $history=[]): string {
     global $CONFIG;
     $key=trim((string)(($CONFIG['grok']['api_key']??'') ?: (getenv('XAI_API_KEY')?:'')));
@@ -55,7 +61,8 @@ function assistant_reply(array $context, string $question, array $history=[]): s
         if (is_array($message) && in_array($message['role']??'', ['user','assistant'],true) && is_string($message['content']??null)) $input[]=['role'=>$message['role'],'content'=>mb_substr($message['content'],0,6000)];
     }
     $input[]=['role'=>'user','content'=>$question];
-    $body=['model'=>$CONFIG['grok']['model']??'grok-4.7','instructions'=>$instructions,'input'=>$input,'store'=>false,'max_output_tokens'=>2000];
+    $model=$CONFIG['grok']['model']??'grok-4.7';
+    $body=['model'=>$model,'instructions'=>$instructions,'input'=>$input,'store'=>false]+assistant_generation_options($model);
     $ch=curl_init('https://api.x.ai/v1/responses');
     curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_RETURNTRANSFER=>true,CURLOPT_CONNECTTIMEOUT=>10,CURLOPT_TIMEOUT=>55,CURLOPT_HTTPHEADER=>['Content-Type: application/json','Authorization: Bearer '.$key],CURLOPT_POSTFIELDS=>json_encode($body,JSON_THROW_ON_ERROR)]);
     $raw=curl_exec($ch);$status=curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);

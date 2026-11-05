@@ -21,3 +21,6 @@ check(str_contains(assistant_provider_error(402,'{}'),'credits'), 'Billing error
 
 $CONFIG['grok']['allow_remote']=true;check(assistant_local(),'Explicit live enable unavailable');
 $CONFIG['grok']['enabled']=false;check(!assistant_local(),'Disabled assistant exposed remotely');
+
+check(assistant_generation_options('grok-4.7')['reasoning']['effort']==='low','Latency-oriented reasoning missing');
+check(!isset(assistant_generation_options('other-model')['reasoning']),'Unsupported model given reasoning parameters');
