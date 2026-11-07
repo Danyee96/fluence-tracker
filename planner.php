@@ -27,6 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($section === 'goals') $item['title'] = $title;
             elseif ($section === 'phases') $item = ['name' => $title, 'short' => $title];
             else $item['t'] = $title;
+            $item['resource_url']=creator_resource_url($_POST['resource_url']??'');
         }
         $change = function (array &$items) use ($act, $key, $item, $section): void {
             if ($act === 'add') {
@@ -86,6 +87,7 @@ function plan_form(array $plan, string $section, string $parent = '', ?array $it
       <label>Instructions <small>(optional)</small><textarea name="description" rows="2" maxlength="3000"><?= e($item['description'] ?? '') ?></textarea></label>
       <?php if (!empty($item['source']) && $item['source'] !== 'manual'): ?><p class="hint">Result comes from monthly numbers.</p><?php endif; ?>
       <?php endif; ?>
+      <label>Resource link <small>(optional)</small><input type="url" name="resource_url" value="<?= e($item['resource_url']??'') ?>" placeholder="https://…" maxlength="2000"></label>
       <div class="plan-actions">
         <button class="btn primary sm" name="act" value="<?= $item ? 'edit' : 'add' ?>"><?= $item ? 'Save changes' : 'Add ' . ($section === 'goals' ? 'goal' : ($section === 'phases' ? 'phase' : 'task')) ?></button>
         <?php if ($item): ?>

@@ -189,6 +189,7 @@
     var box = document.getElementById('goals');
     box.innerHTML = F.goalDefinitions.map(function (g) {
       var macro=(F.overallGoals||[]).find(function(item){return item.key===g.overall_key;});
+      var resource=g.resource_url||(macro&&macro.resource_url);
       var manual = !g.source || g.source === 'manual', saved = drafts[g.key] || F.values[g.key] || {};
       var current = goalCurrent(g);
       var comparison = '';
@@ -207,6 +208,7 @@
       pct = displayedPct(progress);
       return '<div class="kpi goal' + (complete ? ' done' : '') + '" data-goal="' + esc(g.key) + '"><div class="kpi-l">' + I(g.type === 'money' ? 'dollar' : 'target') + esc(g.title) + '</div>' +
         (macro ? '<p class="goal-description">Contributes to: '+esc(macro.title)+'</p>' : '') +
+        (resource ? '<a class="btn sm resource-link" href="'+esc(resource)+'" target="_blank" rel="noopener noreferrer">Open resource '+I('external')+'</a>' : '') +
         (g.description ? '<p class="goal-description">' + esc(g.description) + '</p>' : '') +
         '<div class="goal-result">' + (g.type === 'check' ? esc(LABEL[progress.status]) : valueFormat(g.type, current)) + '</div>' +
         comparison + (target !== '' && target != null ? '<div class="goal-target">Target: ' + valueFormat(g.type, target) + '</div>' : '') +
@@ -312,6 +314,7 @@
       var notes = F.canEdit ? '<textarea data-task-note="' + esc(m.key) + '" rows="2" maxlength="5000" placeholder="Notes, blockers, next actions…">' + esc(note) + '</textarea>' : '<div class="ro">' + (note ? esc(note) : '<span class="muted">No notes this month.</span>') + '</div>';
       return '<li class="task-node ' + (parentNumber ? 'task-child' : 'task-root') + ' st-' + p.status + '" data-task="' + esc(m.key) + '" id="task-' + esc(m.key) + '"><details class="task-details"><summary class="task-heading"><span class="task-number" aria-label="' + level + ' ' + number + '">' + number + '</span><span class="task-title"><span class="task-level">' + level + (children.length ? ' · ' + children.length + ' subtask' + (children.length === 1 ? '' : 's') : '') + '</span><h4>' + esc(m.t) + '</h4></span><span class="spill task-progress-label">' + LABEL[p.status] + ' · ' + pct + '%</span><span class="task-open-label"><span class="task-label-closed">Expand</span><span class="task-label-open">Collapse</span> ' + I('chevron') + '</span></summary>' +
         '<div class="task-progress-track"><i class="task-progress-fill" style="width:' + pct + '%"></i></div>' +
+        (m.resource_url ? '<a class="btn sm resource-link" href="'+esc(m.resource_url)+'" target="_blank" rel="noopener noreferrer">Open resource '+I('external')+'</a>' : '') +
         (m.description ? '<p class="task-description">' + esc(m.description) + '</p>' : '') +
         ((leaf || hasMetric(m)) && (m.type === 'number' || m.type === 'money') && m.target !== '' && m.target != null ? '<div class="goal-target">Target: ' + valueFormat(m.type, m.target) + '</div>' : '') +
         ((leaf || hasMetric(m)) ? (F.canRespond ? resultForm(m, 'task') : (m.type && m.type !== 'check' ? '<div class="goal-result">' + valueFormat(m.type, saved.value) + '</div>' : '')) : '') +
@@ -328,6 +331,7 @@
       return '<section class="phase ' + (status === 'cp' ? 'complete' : status === 'ip' ? 'inprogress' : '') + (pi === ci ? ' current' : '') + '" id="ph-' + esc(p.key) + '"><span class="edge"></span>' +
         '<div class="ph-top"><div class="mid"><div class="num">' + esc(p.num) + '</div><h3>' + esc(p.name) + '</h3></div><span class="badge phase-status ' + status + '">' + LABEL[status] + '</span></div>' +
         '<div class="ph-prog"><div class="track"><i style="width:' + pct + '%"></i></div><span class="p phase-percent">' + pct + '%</span></div>' +
+        (p.resource_url ? '<a class="btn sm resource-link" href="'+esc(p.resource_url)+'" target="_blank" rel="noopener noreferrer">Open resource '+I('external')+'</a>' : '') +
         '<div class="task-summary-rail" aria-label="' + esc(p.name) + ' tasks">' + summarySteps(p.miles) + '</div>' +
         '<button class="btn sm ghost phase-expand" type="button" data-phase="' + esc(p.key) + '" aria-expanded="' + !!expandedPhases[p.key] + '" aria-controls="phase-details-' + esc(p.key) + '">' + (expandedPhases[p.key] ? 'Collapse details' : 'Expand details') + I('chevron') + '</button>' +
         '<div class="phase-details" id="phase-details-' + esc(p.key) + '"' + (expandedPhases[p.key] ? '' : ' hidden') + '>' +

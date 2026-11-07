@@ -205,3 +205,9 @@ Supported Grok 4.3/4.5/4.6/4.7 models explicitly use low reasoning effort rather
 While a reply is pending, an animated message cycles through short activity labels and then a longer-wait message. These are waiting hints, not measured backend progress. The timer and bubble are removed on both success and failure. Reduced-motion preferences disable dot animation. Browser tests use delayed success/error responses to verify label changes and cleanup without spending API credits.
 
 **New chat** reuses an existing blank conversation instead of creating duplicate placeholders. Untouched blank chats are hidden from the history list and appear once a message is sent. Existing duplicate blanks are cleaned up on load; conversations with messages, typed drafts, or custom names are retained. Repeated clicks behave the same in the popup and workspace.
+
+## Resource links and overview growth
+
+Admins can add an optional **Resource link** in Edit overall vision or Plan this month, and in the Path editor for phases and tasks. Links use full HTTP(S) URLs, are validated on save, and open in a new tab. Overall goal and full-Path cards expose them directly; linked monthly goals fall back to their overall goal’s resource link.
+
+The Overview includes **Growth over time** charts for numeric/money overall goals with recorded linked monthly contributions. Each chart displays monthly results, the change from the previous recorded result, native point tooltips, and an expandable table of values. If there are no linked numeric series, recorded subscriber history is shown instead. Missing months are left as gaps, never plotted as zero; one recorded month shows a single point. Charts show recorded monthly results, not an inferred cumulative series. No schema migration is needed. Test: `php tests/overview-visuals.php`.
